@@ -5,7 +5,7 @@ i nadpisuje plik w folderze addona.
 
 ## Start
 
-1. Pobierz folder `auto-updater`
+1. Pobierz cały folder `auto-updater`, w tym `HuntLista-Data.ps1`
 2. Dwuklik **`Start-AutoUpdater.bat`**
 3. Sprawdz / wybierz sciezke do folderu `HuntLista`
 4. Ustaw interwal (np. 5 minut)
@@ -14,7 +14,9 @@ i nadpisuje plik w folderze addona.
 
 ## Po update
 
-W grze: `/reload` albo `/hl reload`
+W grze: `/reload`
+
+Przed podmianą updater sprawdza UTF-8, składnię i strukturę danych bez wykonywania kodu Lua. Błędne pobranie daje status `BLAD` i pozostawia działający plik oraz backup bez zmian. Podmiana jest atomowa; `Data.lua.bak` zachowuje poprzednią poprawną wersję. Uszkodzony lokalny plik nie nadpisuje tej kopii. Walidacja korzysta z wbudowanego .NET, bez instalowania Node.js lub Lua.
 
 ## Uwagi
 

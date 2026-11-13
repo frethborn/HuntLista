@@ -6,7 +6,7 @@ local addonName, ns = ...
 HuntLista = HuntLista or {}
 local HL = HuntLista
 
-HL.version = "1.3.7"
+HL.version = "1.3.8"
 HL.dataVersion = (HuntLista_Data and HuntLista_Data.version) or "brak"
 
 local defaults = {
@@ -52,15 +52,18 @@ function HL:PlayHuntSound()
     local preset = HL.SoundPresets[key] or HL.SoundPresets.raid
     if preset.ids and PlaySound then
         for _, id in ipairs(preset.ids) do
-            if pcall(PlaySound, id, "Master") then return end
+            local ok, played = pcall(PlaySound, id, "Master")
+            if ok and played == true then return end
         end
         for _, id in ipairs(preset.ids) do
-            if pcall(PlaySound, id) then return end
+            local ok, played = pcall(PlaySound, id)
+            if ok and played == true then return end
         end
     end
     if preset.files and PlaySoundFile then
         for _, path in ipairs(preset.files) do
-            pcall(PlaySoundFile, path, "Master")
+            local ok, played = pcall(PlaySoundFile, path, "Master")
+            if ok and played == true then return end
         end
     end
 end
@@ -80,6 +83,7 @@ local function RebuildLookup()
         local key = strlower(strtrim(name))
         HuntLista_Lookup[key] = {
             name = name,
+            ambiguousName = HuntLista_Lookup[key] ~= nil,
             reason = info.reason or "",
             addedBy = info.addedBy or "",
             addedAt = info.addedAt or "",

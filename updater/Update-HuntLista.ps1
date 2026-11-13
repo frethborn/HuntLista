@@ -3,6 +3,7 @@
 # ============================================================
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'HuntLista-Data.ps1')
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $RepoOwner = "frethborn"
@@ -90,31 +91,13 @@ if (-not (Test-Path $addonDir)) {
     Pause-Exit 1
 }
 
-if (Test-Path $targetFile) {
-    try {
-        Copy-Item $targetFile (Join-Path $addonDir "Data.lua.bak") -Force
-        Write-Host "  OK  Backup starego Data.lua (Data.lua.bak)" -ForegroundColor DarkGray
-    } catch {}
-}
-
 Write-Host "  Pobieram najnowsza liste z GitHuba..." -ForegroundColor Yellow
 
 try {
-    $response = Invoke-WebRequest -Uri $RawUrl -UseBasicParsing -TimeoutSec 25
-    $content  = $response.Content
-
-    if (-not $content -or ($content -notmatch "HuntLista_Data")) {
-        throw "Pobrany plik nie wyglada na poprawny Data.lua"
-    }
-
-    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-    [System.IO.File]::WriteAllText($targetFile, $content, $utf8NoBom)
-
-    $version = "?"
-    $lastUpdate = ""
-    if ($content -match 'version\s*=\s*"([^"]+)"') { $version = $Matches[1] }
-    if ($content -match 'lastUpdate\s*=\s*"([^"]+)"') { $lastUpdate = $Matches[1] }
-    $playerCount = ([regex]::Matches($content, '\["[^"]+"\]\s*=')).Count
+    $info = Update-HuntListaData -Uri $RawUrl -TargetPath $targetFile
+    $version = $info.Version
+    $lastUpdate = $info.LastUpdate
+    $playerCount = $info.PlayerCount
 
     Write-Host ""
     Write-Host "  ======================================" -ForegroundColor Green

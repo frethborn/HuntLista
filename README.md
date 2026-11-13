@@ -78,7 +78,7 @@ Wszyscy uczestnicy muszą mieć addon w wersji **1.3.0 lub nowszej** i być onli
 
 Wiadomości nie zwiększają lokalnych liczników odbiorców i nie są przekazywane dalej. Powtórzenia tego samego zgłoszenia są tłumione przez 3 sekundy. Odbiorca może mieć starszą listę i nadal otrzyma powiadomienie.
 
-Ręczne `/hl kill Nick` i obserwacja śmierci targetu służą wyłącznie lokalnemu licznikowi. Nie dowodzą, kto zadał zabójczy cios, więc nie są ogłaszane gildii. Ucięta, niejednoznaczna nazwa również nie jest rozsyłana. Jeżeli klient Forever nie dostarczy rozpoznanego komunikatu z pełną nazwą, powiadomienie nie powstanie. Błędy lub blokady wysyłania są pokazane lokalnie; status komunikacji jest też dostępny pod `/hl status`.
+Automatyczny lokalny licznik i powiadomienie gildii wymagają rozpoznanego komunikatu w pierwszej osobie z pełną, jednoznaczną nazwą gracza z listy. Sama śmierć targetu nie nalicza zabójstwa. `/hl kill Nick` pozostaje ręczną korektą lokalną i nie ogłasza zabójstwa gildii. Jeśli klient Forever nie dostarczy potwierdzenia, automatyczne naliczenie i powiadomienie nie powstaną. Błędy lub blokady wysyłania są pokazane lokalnie; status komunikacji jest dostępny pod `/hl status`.
 
 Instalacja tej funkcji wymaga aktualizacji całego folderu `HuntLista`, w tym nowego `GuildKills.lua` i pliku `.toc`, oraz `/reload`. Updatery pobierające tylko `Data.lua` nie instalują nowego kodu addona.
 
@@ -92,7 +92,7 @@ Lista żyje w `HuntLista/Data.lua`. Gdy ktoś doda osobę przez Discord, plik zm
 
 Folder: [`auto-updater/`](https://github.com/frethborn/HuntLista/tree/main/auto-updater)
 
-1. Pobierz folder `auto-updater`
+1. Pobierz cały folder `auto-updater`, razem z `HuntLista-Data.ps1`
 2. Odpal **`Start-AutoUpdater.bat`**
 3. Ustaw ścieżkę do `HuntLista` (często wykryje sam)
 4. Ustaw interwał (np. 5 minut) → **Start auto**
@@ -102,7 +102,7 @@ Program musi działać w tle przy grze (WoW sam nie ściąga plików z netu).
 
 ### Opcja B — Updater jednorazowy
 
-1. Pobierz folder [`updater/`](https://github.com/frethborn/HuntLista/tree/main/updater)
+1. Pobierz cały folder [`updater/`](https://github.com/frethborn/HuntLista/tree/main/updater), razem z `HuntLista-Data.ps1`
 2. Odpal **`Update-HuntLista.bat`**
 3. W grze: `/reload`
 
@@ -165,7 +165,7 @@ Komendy zmieniające dane (`/hunt add`, `remove`, `kill`, `killreset`) dopasowuj
 
 Odczyt danych nie wykonuje kodu Lua. Niepoprawny format, brak pliku lub błąd odczytu blokują zapis. Komendy zmieniające listę są wykonywane kolejno, a konflikt SHA z innym zapisem wymaga ponowienia komendy. Przy niepewnym wyniku połączenia najpierw sprawdź `/hunt list`.
 
-Testy regresji (Node.js 20+): w folderze `HuntListaBot` uruchom `npm ci` i `npm test`. Testy obejmują zapis/odczyt tekstu Lua, operacje na liście z atrapą GitHuba, wykrywanie zabójcy oraz powiadomienia między symulowanymi klientami gildii z atrapami API WoW. Nie wymagają tokenów ani połączenia z grą.
+Testy regresji (Node.js 20+): w folderze `HuntListaBot` uruchom `npm ci` i `npm test`. Testy obejmują zapis/odczyt tekstu Lua, operacje na liście z atrapą GitHuba, wykrywanie zabójcy, licznik, dźwięki oraz powiadomienia między symulowanymi klientami gildii z atrapami API WoW. Na Windows uruchamiają też Windows PowerShell 5.1: sprawdzają zgodność walidatora z parserem bota, podmianę plików, backup, błędy pobierania/zapisu i oba updatery. Ten test jest pomijany na innych systemach. Testy nie wymagają tokenów ani połączenia z grą; pliki testowe powstają w izolowanym katalogu tymczasowym.
 
 ---
 

@@ -19,7 +19,8 @@ function client(name, options)
     env._G = env
     env.HuntListaDB = {}
     env.HuntLista_Data = { version = 'test', players = {
-        ['Mega Enemy'] = {}, ['Bad Guy'] = {}, ['Tollwütige Fledermaus'] = {}
+        ['Mega Enemy'] = {}, ['Mega Rival'] = {}, ['Bad Guy'] = {}, ['Tollwütige Fledermaus'] = {},
+        ['Case Conflict'] = {}, ['case conflict'] = {}
     }}
     env.HuntLista_Lookup = {}
     env.SlashCmdList = {}
@@ -37,7 +38,7 @@ function client(name, options)
     env.issecretvalue = function(value) return value == c.secret end
     env.print = function(message) table.insert(c.logs, message) end
     env.RaidNotice_AddMessage = function(_, message) table.insert(c.alerts, message) end
-    env.PlaySound = function() c.sounds = c.sounds + 1 end
+    env.PlaySound = function() c.sounds = c.sounds + 1; return true, 1 end
     env.RaidWarningFrame = {}
     env.ChatTypeInfo = { RAID_WARNING = {} }
     env.SOUNDKIT = { RAID_WARNING = 1 }
@@ -82,10 +83,11 @@ function client(name, options)
             if f.events[event] then f.scripts.OnEvent(f, event, ...) end
         end
     end
-    function c:chat(message)
-        assert(self.filters.CHAT_MSG_SYSTEM, 'Kill chat filter must be registered')
-        for _, callback in ipairs(self.filters.CHAT_MSG_SYSTEM) do
-            assert(callback(nil, 'CHAT_MSG_SYSTEM', message) == false)
+    function c:chat(message, event)
+        event = event or 'CHAT_MSG_SYSTEM'
+        assert(self.filters[event], 'Missing chat filter for ' .. event)
+        for _, callback in ipairs(self.filters[event]) do
+            assert(callback(nil, event, message) == false)
         end
     end
     function c:poll()
@@ -119,7 +121,8 @@ test('confirmed kill reaches guild clients once, without relaying or changing th
         local bob = client('Bob Warrior-Realm')
         local carol = client('Carol Healer-Realm')
         alice:chat('You have slain Mega Enemy.')
-        alice:chat('You have slain Mega Enemy.') -- another chat window can run the same filter again
+        alice:chat('You have slain Mega Enemy.', 'CHAT_MSG_COMBAT_MISC_INFO')
+        alice:chat('You have slain Mega Enemy.')
         assert(#world.packets == 1)
         deliver()
         for _, c in ipairs(world.clients) do assert(#c.alerts == 1 and c.sounds == 1) end
@@ -133,37 +136,56 @@ test('confirmed kill reaches guild clients once, without relaying or changing th
     `);
 });
 
-test('a confirmed chat kill still broadcasts after the target poll counted it locally', () => {
+test('watching a target die does not count a kill; chat confirmation counts once per cooldown', () => {
     scenario(`
         local alice = client('Alice')
         alice.targetExists = true
         alice:poll()
         alice.targetAlive = false
         alice:poll()
-        assert(alice.env.HuntLista:GetKillCount('Mega Enemy') == 1 and #world.packets == 0)
+        assert(alice.env.HuntLista:GetTotalKills() == 0 and #alice.alerts == 0 and #world.packets == 0)
+        alice:chat('Mega Enemy dies.')
+        assert(alice.env.HuntLista:GetTotalKills() == 0 and #alice.alerts == 0 and #world.packets == 0)
         alice:chat('You have slain Mega Enemy.')
         assert(alice.env.HuntLista:GetKillCount('Mega Enemy') == 1 and #world.packets == 1)
+        assert(alice.env.HuntLista:GetKillCount('Mega Rival') == 0)
         alice:chat('You have slain Mega Enemy.')
         assert(#world.packets == 1)
         world.now = world.now + 4
         alice:chat('You have slain Mega Enemy.')
-        assert(#world.packets == 2 and #alice.alerts == 2)
+        assert(alice.env.HuntLista:GetKillCount('Mega Enemy') == 2 and #world.packets == 2 and #alice.alerts == 2)
     `);
 });
 
-test('manual corrections, other deaths, ambiguous and off-list names never broadcast', () => {
+test('legacy abbreviated counts are readable for a unique full name', () => {
     scenario(`
         local alice = client('Alice')
-        alice:command('kill Mega Enemy')
-        assert(alice.env.HuntLista:GetKillCount('Mega Enemy') == 1)
+        alice.env.HuntListaDB.kills.bad = { count = 2 }
+        alice.env.HuntListaDB.kills.mega = { count = 3 }
+        assert(alice.env.HuntLista:GetKillCount('Bad Guy') == 2)
+        assert(alice.env.HuntLista:GetKillCount('Mega Enemy') == 0)
+        assert(alice.env.HuntLista:GetKillCount('Mega Rival') == 0)
+        assert(alice.env.HuntLista:GetTotalKills() == 5)
+    `);
+});
+
+test('manual corrections stay local; unconfirmed, ambiguous and off-list kills do not count', () => {
+    scenario(`
+        local alice = client('Alice')
+        alice:command('kill Bad')
+        alice:command('kill Bad Guy')
+        assert(alice.env.HuntLista:GetKillCount('Bad Guy') == 1)
+        world.now = world.now + 4
         for _, message in ipairs({
-            'Someone says You have slain Bad Guy.', 'You were slain by Bad Guy.',
-            'You have slain Mega.', 'You have slain Unknown Player.'
+            'Someone says You have slain Bad Guy.', 'You were slain by Bad Guy.', 'You hit Bad Guy for 300.',
+            'Slain Bad Guy.', 'Killed Bad Guy.', 'Zabijasz Bad Guy.', 'You have slain Unknown Player.',
+            'You have slain Bad.', 'You have slain Mega.', 'You have slain Mega-Realm.',
+            'You have slain Case Conflict.', 'You have slain |Hitem:1|hBad Guy|h.'
         }) do alice:chat(message) end
-        assert(#world.packets == 0)
+        assert(alice.env.HuntLista:GetTotalKills() == 1 and #alice.alerts == 1 and #world.packets == 0)
         alice.secret = 'You have slain Bad Guy.'
         alice:chat(alice.secret)
-        assert(#world.packets == 0)
+        assert(alice.env.HuntLista:GetTotalKills() == 1 and #world.packets == 0)
     `);
 });
 
@@ -171,9 +193,11 @@ test('colored and linked full names and Polish messages retain Unicode', () => {
     scenario(`
         local alice = client('Alice')
         local bob = client('Bob')
-        alice:chat('|cffffffffYou have slain |Hplayer:Tollwütige Fledermaus|hTollwütige Fledermaus|h.|r')
-        alice:chat('Zabiłeś Bad Guy!')
+        alice:chat('|cffffffffYou have slain |Hplayer:Tollwütige Fledermaus|h[Tollwütige Fledermaus]|h.|r')
+        alice:chat('Zabiłeś Bad Guy-Realm!')
         deliver()
+        assert(alice.env.HuntLista:GetKillCount('Tollwütige Fledermaus') == 1)
+        assert(alice.env.HuntLista:GetKillCount('Bad Guy') == 1)
         assert(#bob.alerts == 2)
         assert(bob.alerts[1]:find('Tollwütige Fledermaus', 1, true))
         assert(bob.alerts[2]:find('Bad Guy', 1, true))

@@ -2,6 +2,9 @@
 # Hunt Lista - Auto Updater (GUI) v2
 # ============================================================
 
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'HuntLista-Data.ps1')
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -73,23 +76,9 @@ function Update-Data {
     $script:lblStatus.ForeColor = [System.Drawing.Color]::Orange
 
     try {
-        $resp = Invoke-WebRequest -Uri $RawUrl -UseBasicParsing -TimeoutSec 25
-        $content = [string]$resp.Content
-
-        if (-not $content -or ($content -notmatch "HuntLista_Data")) {
-            throw "Pobrany plik nie wyglada na Data.lua"
-        }
-
-        if (Test-Path $target) {
-            Copy-Item $target (Join-Path $script:addonDir "Data.lua.bak") -Force -ErrorAction SilentlyContinue
-        }
-
-        $utf8 = New-Object System.Text.UTF8Encoding $false
-        [System.IO.File]::WriteAllText($target, $content, $utf8)
-
-        $ver = "?"
-        if ($content -match 'version\s*=\s*"([^"]+)"') { $ver = $Matches[1] }
-        $count = ([regex]::Matches($content, '\["[^"]+"\]\s*=')).Count
+        $info = Update-HuntListaData -Uri $RawUrl -TargetPath $target
+        $ver = $info.Version
+        $count = $info.PlayerCount
 
         $script:lastVersion = $ver
         $script:lastCount = $count
@@ -268,7 +257,7 @@ $form.Controls.Add($lblLast)
 $script:lblLast = $lblLast
 
 $lblHint = New-Object System.Windows.Forms.Label
-$lblHint.Text = "Po update w grze wpisz:  /reload   albo   /hl reload"
+$lblHint.Text = "Po update w grze wpisz:  /reload"
 $lblHint.ForeColor = [System.Drawing.Color]::Gold
 $lblHint.Location = New-Object System.Drawing.Point(16, 218)
 $lblHint.AutoSize = $true

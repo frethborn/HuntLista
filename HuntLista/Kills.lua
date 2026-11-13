@@ -5,9 +5,6 @@
 HuntLista = HuntLista or {}
 local HL = HuntLista
 
-local lastTargetName
-local lastTargetOnList = false
-local lastTargetWasAlive = false
 local recentKillLock = {}
 
 local function EnsureKillsDB()
@@ -33,15 +30,19 @@ function HL:GetKillCount(name)
     if not key then return 0 end
     local e = HuntListaDB.kills[key]
     if e then return e.count or 0 end
-    local fw = key:match("^(%S+)")
-    if fw and fw ~= key then
-        for k, v in pairs(HuntListaDB.kills) do
-            if k == fw or k:sub(1, #fw + 1) == fw .. " " then
-                return v.count or 0
-            end
+    local firstWord = key:match("^(%S+)%s")
+    local legacy = firstWord and HuntListaDB.kills[firstWord]
+    local entry = HuntLista_Lookup[key]
+    if not legacy or not entry or entry.ambiguousName then return 0 end
+
+    -- Stary, skrocony klucz mozna przypisac tylko jednemu pelnemu nickowi.
+    local prefix = firstWord .. " "
+    for other in pairs(HuntLista_Lookup) do
+        if other ~= key and (other == firstWord or other:sub(1, #prefix) == prefix) then
+            return 0
         end
     end
-    return 0
+    return legacy.count or 0
 end
 
 function HL:GetTotalKills()
@@ -78,10 +79,16 @@ local function ShowKillAlert(display, count, reason)
 end
 
 function HL:RecordKill(name, source)
-    if not name or name == "" then return false end
-    if type(name) ~= "string" then return false end
+    if type(name) ~= "string" or name == "" then return false end
 
-    local info = HL.GetInfo and HL:GetInfo(name)
+    local info
+    if source == "chat" then
+        local fullName = HL:NormalizeName(name)
+        if fullName then info = HuntLista_Lookup[strlower(fullName)] end
+        if info and info.ambiguousName then return false end
+    else
+        info = HL.GetInfo and HL:GetInfo(name)
+    end
     if not info then
         if HuntListaDB and HuntListaDB.debug then
             print("|cff888888[HL kills]|r nie na liscie: " .. tostring(name))
@@ -92,10 +99,9 @@ function HL:RecordKill(name, source)
     local display = info.name or name
     local key = strlower(strtrim(display))
 
-    -- Poll mogl juz naliczyc smierc. Potwierdzenie nadal musi dotrzec do gildii;
-    -- BroadcastGuildKill ma niezalezna ochrone przed podwojnym wyslaniem.
+    -- Wysylka ma wlasna deduplikacje i moze ponowic probe po bledzie.
     if source == "chat" and HL.BroadcastGuildKill then
-        HL:BroadcastGuildKill(name)
+        HL:BroadcastGuildKill(display)
     end
 
     local now = GetTime()
@@ -163,34 +169,30 @@ function HL:PrintKills()
     print("  Razem: " .. HL:GetTotalKills())
 end
 
+local killMessages = {
+    "^[Yy]ou have slain (.+)$",
+    "^[Yy]ou slain (.+)$",
+    "^[Yy]ou have killed (.+)$",
+    "^[Zz]abiles (.+)$",
+    "^[Zz]abilas (.+)$",
+    "^[Zz]abiłeś (.+)$",
+    "^[Zz]abiłaś (.+)$",
+}
+
 local function TryParseKillChat(msg)
     if issecretvalue and issecretvalue(msg) then return end
     if type(msg) ~= "string" then return end
-    msg = msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-    msg = msg:gsub("|H.-|h", ""):gsub("|h", "")
-    local patterns = {
-        "^[Yy]ou have slain (.+)$",
-        "^[Yy]ou slain (.+)$",
-        "^[Ss]lain (.+)$",
-        "^[Zz]abiles (.+)$",
-        "^[Zz]abilas (.+)$",
-        "^[Zz]abiłeś (.+)$",
-        "^[Zz]abiłaś (.+)$",
-        "^[Zz]abijasz (.+)$",
-        "^[Yy]ou have killed (.+)$",
-        "^[Kk]illed (.+)$",
-    }
-    for _, pat in ipairs(patterns) do
-        local m = msg:match(pat)
-        if m then
-            m = strtrim(m)
-            m = m:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-            m = m:gsub("|H.-|h", ""):gsub("|h", "")
-            m = m:gsub("[%.%!]+$", "")
-            if m ~= "" then
-                HL:RecordKill(m, "chat")
-                return
+    msg = strtrim((msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")))
+    for _, pattern in ipairs(killMessages) do
+        local victim = msg:match(pattern)
+        if victim then
+            victim = strtrim((victim:gsub("[.!]+$", "")))
+            local linkedName = victim:match("^|Hplayer:[^|]+|h([^|]+)|h$")
+            if linkedName then
+                victim = linkedName:match("^%[(.+)%]$") or linkedName
             end
+            if not victim:find("[%c|]") then HL:RecordKill(victim, "chat") end
+            return
         end
     end
 end
@@ -212,42 +214,6 @@ if ChatFrame_AddMessageEventFilter then
         pcall(ChatFrame_AddMessageEventFilter, ev, filter)
     end
 end
-
-local poll = CreateFrame("Frame")
-poll:SetScript("OnUpdate", function(self, elapsed)
-    self.t = (self.t or 0) + elapsed
-    if self.t < 0.2 then return end
-    self.t = 0
-
-    if not UnitExists("target") or not UnitIsPlayer("target") then
-        lastTargetName = nil
-        lastTargetOnList = false
-        lastTargetWasAlive = false
-        return
-    end
-
-    local okN, n = pcall(UnitName, "target")
-    if not okN or type(n) ~= "string" then return end
-    if issecretvalue and issecretvalue(n) then return end
-
-    local full = (HL.ResolveFullName and HL:ResolveFullName(n)) or n
-    local onList = HL.IsOnList and HL:IsOnList(full) or false
-    local alive = not UnitIsDeadOrGhost("target")
-
-    if lastTargetName ~= full then
-        lastTargetName = full
-        lastTargetOnList = onList
-        lastTargetWasAlive = alive
-        return
-    end
-
-    if lastTargetOnList and lastTargetWasAlive and not alive then
-        HL:RecordKill(full, "target-death")
-    end
-
-    lastTargetOnList = onList
-    lastTargetWasAlive = alive
-end)
 
 HuntLista.GetKillCount = HL.GetKillCount
 HuntLista.GetTotalKills = HL.GetTotalKills
