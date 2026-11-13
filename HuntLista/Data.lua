@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-13.2",
-    lastUpdate = "2026-11-13 21:31",
+    version = "2026-11-13.3",
+    lastUpdate = "2026-11-13 21:32",
     updatedBy = "DiscordBot",
 
     players = {
@@ -139,6 +139,15 @@ HuntLista_Data = {
             reason = "xd",
             addedBy = "frethborn",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["kaze blackwolf"] = {
+            reason = "napadl mnie 2v1 i dostal w pizde xpp",
+            addedBy = "kkkelv",
+            addedAt = "2026-11-13",
             note = "",
             kills = "0",
             lastKillBy = "",
