@@ -67,10 +67,15 @@ client.once('ready', () => {
     console.log(`Zalogowano jako ${client.user.tag}`);
 });
 
-function findPlayer(data, nick) {
+function findExactPlayer(data, nick) {
     const lower = nick.toLowerCase();
-    const exact = Object.keys(data.players).find(key => key.toLowerCase() === lower);
+    return Object.keys(data.players).find(key => key.toLowerCase() === lower);
+}
+
+function findPlayer(data, nick) {
+    const exact = findExactPlayer(data, nick);
     if (exact) return exact;
+    const lower = nick.toLowerCase();
     // fuzzy: pierwsze słowo (Forever)
     return Object.keys(data.players).find(key => {
         const k = key.toLowerCase();
@@ -98,7 +103,7 @@ client.on('interactionCreate', async interaction => {
 
         if (sub === 'add') {
             const { data } = await store.update(data => {
-                const key = findPlayer(data, nick) || nick;
+                const key = findExactPlayer(data, nick) || nick;
                 const prev = data.players[key] || {};
                 data.players[key] = {
                     reason,
@@ -122,13 +127,13 @@ client.on('interactionCreate', async interaction => {
         else if (sub === 'remove') {
             let found;
             const { changed, data } = await store.update(data => {
-                found = findPlayer(data, nick);
+                found = findExactPlayer(data, nick);
                 if (!found) return false;
                 delete data.players[found];
             });
             await interaction.editReply({ content: changed
                 ? `Usunięto **${found}** z listy. Wersja: \`${data.version}\` (GitHub OK)`
-                : `Nie ma **${nick}** na liście.` });
+                : `Nie ma pełnego nicku **${nick}** na liście. Sprawdź /hunt list.` });
         }
         else if (sub === 'list') {
             const data = await store.read();
@@ -166,7 +171,7 @@ client.on('interactionCreate', async interaction => {
             let found;
             let newCount = 0;
             const { changed, data } = await store.update(data => {
-                found = findPlayer(data, nick);
+                found = findExactPlayer(data, nick);
                 if (!found) return false;
                 const p = data.players[found];
                 const cur = getKills(p);
@@ -180,7 +185,7 @@ client.on('interactionCreate', async interaction => {
                 if (!p.note) p.note = p.note || '';
             });
             if (!changed) {
-                await interaction.editReply({ content: `Nie ma **${nick}** na liście. Najpierw \`/hunt add\`.` });
+                await interaction.editReply({ content: `Nie ma pełnego nicku **${nick}** na liście. Sprawdź /hunt list lub dodaj gracza przez /hunt add.` });
                 return;
             }
             const embed = new EmbedBuilder().setColor(0x44ff88).setTitle('Zabójstwo zapisane')
@@ -214,7 +219,7 @@ client.on('interactionCreate', async interaction => {
         else if (sub === 'killreset') {
             let found;
             const { changed, data } = await store.update(data => {
-                found = findPlayer(data, nick);
+                found = findExactPlayer(data, nick);
                 if (!found) return false;
                 data.players[found].kills = '0';
                 data.players[found].lastKillBy = '';
@@ -222,7 +227,7 @@ client.on('interactionCreate', async interaction => {
             });
             await interaction.editReply({ content: changed
                 ? `Wyzerowano licznik **${found}**. Wersja: \`${data.version}\``
-                : `Nie ma **${nick}** na liście.` });
+                : `Nie ma pełnego nicku **${nick}** na liście. Sprawdź /hunt list.` });
         }
     } catch (error) {
         console.error('Błąd komendy hunt:', error.message);

@@ -8,21 +8,21 @@ local HL = HuntLista
 
 local lastAttackerName = nil
 local lastAttackerTime = 0
-local lastAttackerSource = nil
+local lastKillerName = nil
+local lastKillerTime = 0
 local deathFrame
 local popupShownForDeath = false
 local wasDead = false
 local deathObservedAt = 0
 
 local CHAT_MAX_AGE = 12
-local TARGET_MAX_AGE = 30
+local KILLER_MESSAGE_MAX_AGE = 5
 
 HL.NameCache = HL.NameCache or {}
 
 local function CleanPlayerName(name)
-    if not name or name == "" then return nil end
-    if type(name) ~= "string" then return nil end
     if issecretvalue and issecretvalue(name) then return nil end
+    if type(name) ~= "string" or name == "" then return nil end
 
     local ok, cleaned = pcall(function()
         local n = strtrim(name)
@@ -131,24 +131,17 @@ function HL:CacheUnit(unit)
 end
 
 local function RememberAttacker(name, reason)
-    if type(name) ~= "string" then return end
     name = CleanPlayerName(name)
     if not name then return end
 
-    -- chat/combatlog ma priorytet nad targetem
-    if reason == "combat-target" and lastAttackerSource and lastAttackerSource ~= "combat-target" then
-        if (GetTime() - lastAttackerTime) < CHAT_MAX_AGE then
-            return
-        end
+    -- Zachowaj tekst z komunikatu. Cache pierwszego slowa moze wskazywac inna osobe.
+    if reason == "chat" then
+        lastKillerName = name
+        lastKillerTime = GetTime()
+    else
+        lastAttackerName = name
+        lastAttackerTime = GetTime()
     end
-
-    local resolved = HL:ResolveFullName(name)
-    if resolved then name = resolved end
-
-    lastAttackerName = name
-    lastAttackerTime = GetTime()
-    lastAttackerSource = reason
-    HL:CacheFullName(name)
 
     if HuntListaDB and HuntListaDB.debug then
         print("|cff888888[HL death]|r attacker=" .. name .. " (" .. tostring(reason) .. ")")
@@ -161,8 +154,8 @@ end
 -- "Name Mutilate hit You 175 Physical. (77 Overkill)"
 -- "[You died.]"
 local function TryParseKillerFromChat(msg)
-    if not msg or type(msg) ~= "string" then return end
     if issecretvalue and issecretvalue(msg) then return end
+    if type(msg) ~= "string" then return end
 
     msg = msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
     msg = msg:gsub("|H.-|h", ""):gsub("|h", "")
@@ -197,57 +190,25 @@ local function TryParseKillerFromChat(msg)
     -- Forever / combat log: "Something hit/damaged You ..."
     -- Nie lap "You hit ..." (to my bijemy).
     if not msg:match("^[Yy]ou%s") then
-        local patterns = {
-            "^(.+) Melee hit You",
-            "^(.+) hit You",
-            "^(.+) crit You",
-            "^(.+) crits You",
-            "^(.+) hits You",
-            "^(.+) damaged You",
-            "^(.+) damages You",
-            "^(.+) suffers You", -- rare
-            "^(.+) was blocked", -- skip-ish
-        }
         for _, pat in ipairs({
-            "^(.+) Melee hit You",
-            "^(.+) hit You",
-            "^(.+) hits You",
-            "^(.+) crit You",
-            "^(.+) crits You",
-            "^(.+) damaged You",
-            "^(.+) damages You",
-            "^(.+) crushes You",
-            "^(.+) crush You",
+            "^(.+) Melee hit You%s",
+            "^(.+) hit You%s",
+            "^(.+) hits You%s",
+            "^(.+) crit You%s",
+            "^(.+) crits You%s",
+            "^(.+) damaged You%s",
+            "^(.+) damages You%s",
+            "^(.+) crushes You%s",
+            "^(.+) crush You%s",
         }) do
             local m = msg:match(pat)
             if m then
-                -- "Deadly Poison II" bywa w srodku: "Name Deadly Poison II damaged You"
-                -- bierzemy caly prefix przed slowem kluczowym - bywa z ability
-                -- Spróbuj odciac znana ability na koncu prefixu: ostanie 1-3 slowa jesli look like ability
-                m = strtrim(m)
-                -- Jesli pattern to "hit You" bez Melee, m moze byc "Name Mutilate"
-                -- Zostawiamy pelne m; Clean odfiltruje smieci
+                -- Prefix moze zawierac umiejetnosc. Pokazujemy go jako ostatni atak,
+                -- bez zgadywania granicy nicku i bez uznawania go za zabojce.
                 local cleaned = CleanPlayerName(m)
                 if cleaned and #cleaned >= 2 then
-                    -- Gdy m = "Name Ability Ability", a UnitName nie ma spacji ability...
-                    -- Heurystyka: jesli 3+ slow, sprobuj pierwsze 2 (Forever full name)
-                    local words = {}
-                    for w in cleaned:gmatch("%S+") do table.insert(words, w) end
-                    local candidate = cleaned
-                    if #words >= 3 then
-                        -- typowe: Name Name Ability  OR Name Ability Ability
-                        -- Preferuj 2 pierwsze slowa (nick Forever ze spacja)
-                        candidate = words[1] .. " " .. words[2]
-                    elseif #words == 2 then
-                        -- Name Ability  LUB Name Name - nie wiemy; zostaw oba, ResolveFullName z listy pomoże
-                        candidate = cleaned
-                    end
-                    RememberAttacker(candidate, "combatlog")
-                    -- zapisz tez pelniejsze jesli krotkie
-                    if candidate ~= cleaned and #words >= 2 then
-                        RememberAttacker(words[1] .. " " .. words[2], "combatlog")
-                    end
-                    return candidate
+                    RememberAttacker(cleaned, "combatlog")
+                    return cleaned
                 end
             end
         end
@@ -304,11 +265,13 @@ local function CreateDeathFrame()
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOP", 0, -16)
     title:SetText("|cffff4444Zabil cie|r")
+    f.title = title
 
     local sub = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     sub:SetPoint("TOP", title, "BOTTOM", 0, -4)
     sub:SetTextColor(0.7, 0.7, 0.7)
     sub:SetText("Kliknij w nick, Ctrl+C aby skopiowac")
+    f.subtitle = sub
 
     local eb = CreateFrame("EditBox", nil, f)
     eb:SetSize(280, 32)
@@ -377,28 +340,31 @@ local function CreateDeathFrame()
     return f
 end
 
-function HL:ShowKillerPopup(name)
+function HL:ShowKillerPopup(name, source)
     if HuntListaDB and HuntListaDB.deathPopup == false then return end
-    if not name or name == "" then return end
-
-    SeedCacheFromData()
-    name = HL:ResolveFullName(name) or name
     name = CleanPlayerName(name)
     if not name then return end
 
     local f = CreateDeathFrame()
+    local confirmed = source == "chat"
+    local combatLog = source == "combatlog"
+    local title = confirmed and "Zabil cie" or (combatLog and "Ostatni atak" or "Podglad nicku")
+    f.title:SetText("|cffff4444" .. title .. "|r")
+    f.subtitle:SetText(combatLog and "Zapis z logu walki; zabojca niepotwierdzony" or "Kliknij w nick, Ctrl+C aby skopiowac")
     f.editBox:EnableKeyboard(false)
     f.editBox:ClearFocus()
     f.editBox:SetText(name)
 
-    local info = HL.GetInfo and HL:GetInfo(name) or nil
-    if info then
+    local info = HuntLista_Lookup and HuntLista_Lookup[strlower(name)]
+    if combatLog then
+        f.onListText:SetText("|cffaaaaaaTekst moze zawierac nazwe umiejetnosci|r")
+    elseif info then
         f.onListText:SetText("|cffff6666Juz na Hunt Liscie|r")
     else
         f.onListText:SetText("|cffaaaaaaNie ma na liscie - dopisz i wklej na Discord|r")
     end
 
-    print("|cffff4444[Hunt Lista]|r Zabojca: |cffffff00" .. name .. "|r")
+    print("|cffff4444[Hunt Lista]|r " .. title .. ": |cffffff00" .. name .. "|r")
     f:Show()
 end
 
@@ -412,38 +378,26 @@ function HL:HideKillerPopup()
     end
 end
 
-local function TryShowOnDeath(source)
-    if popupShownForDeath then return end
+local function TryShowOnDeath()
+    if popupShownForDeath == "chat" then return end
     if HuntListaDB and HuntListaDB.deathPopup == false then return end
 
-    local name = lastAttackerName
-    local age = lastAttackerName and (GetTime() - lastAttackerTime) or 999
-    local src = lastAttackerSource
-    local maxAge = (src == "combat-target") and TARGET_MAX_AGE or CHAT_MAX_AGE
-
-    if (not name or age > maxAge) and UnitExists("target") and UnitIsPlayer("target") then
-        local best = SafeUnitName("target")
-        if best then
-            name = best
-            age = 0
-            src = "target-now"
-            maxAge = TARGET_MAX_AGE
-        end
+    local name, source, age
+    if lastKillerName and GetTime() - lastKillerTime <= KILLER_MESSAGE_MAX_AGE then
+        name, source, age = lastKillerName, "chat", GetTime() - lastKillerTime
+    elseif not popupShownForDeath and lastAttackerName and GetTime() - lastAttackerTime <= CHAT_MAX_AGE then
+        name, source, age = lastAttackerName, "combatlog", GetTime() - lastAttackerTime
     end
+    if not name then return end
 
     if HuntListaDB and HuntListaDB.debug then
         print("|cff888888[HL death]|r TryShow source=" .. tostring(source)
-            .. " last=" .. tostring(lastAttackerName)
-            .. " via=" .. tostring(src)
+            .. " last=" .. tostring(name)
             .. " age=" .. string.format("%.1f", age))
     end
 
-    if name and age <= maxAge then
-        popupShownForDeath = true
-        HL:ShowKillerPopup(name)
-    elseif HuntListaDB and HuntListaDB.debug then
-        print("|cff888888[HL death]|r brak zabojcy")
-    end
+    popupShownForDeath = source
+    HL:ShowKillerPopup(name, source)
 end
 
 local poll = CreateFrame("Frame")
@@ -451,13 +405,6 @@ poll:SetScript("OnUpdate", function(self, elapsed)
     self.t = (self.t or 0) + elapsed
     if self.t < 0.15 then return end
     self.t = 0
-
-    if UnitAffectingCombat("player") then
-        if UnitExists("target") and UnitIsPlayer("target") and UnitCanAttack("player", "target") then
-            local n = SafeUnitName("target")
-            if n then RememberAttacker(n, "combat-target") end
-        end
-    end
 
     local dead = UnitIsDeadOrGhost("player")
     if dead then
@@ -469,12 +416,15 @@ poll:SetScript("OnUpdate", function(self, elapsed)
             end
         end
         local dt = GetTime() - deathObservedAt
-        if dt >= 0.2 and dt < 8 then
-            TryShowOnDeath("HEALTH")
+        if dt >= 0.3 then
+            TryShowOnDeath()
         end
     elseif not dead and wasDead then
         wasDead = false
         popupShownForDeath = false
+        lastAttackerName, lastKillerName = nil, nil
+        lastAttackerTime, lastKillerTime = 0, 0
+        HL:HideKillerPopup()
     end
 end)
 

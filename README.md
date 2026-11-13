@@ -4,6 +4,7 @@ Gildyjny addon do **WoW Forever** — wspólna lista graczy PvP do oznaczania ("
 
 Gdy ktoś z listy pojawi się w grze, dostajesz **alert**, **dźwięk** i **czerwoną czaszkę** przy nameplate / targetcie.
 Po śmierci wyskakuje **okienko z nickiem zabójcy** do skopiowania, jeśli gra wysłała rozpoznany komunikat o Twojej śmierci. Sam target nie jest uznawany za zabójcę.
+Jeśli dostępny jest tylko log obrażeń, okno pokazuje **„Ostatni atak”** z informacją, że zabójca nie jest potwierdzony. Tekst może zawierać nazwę umiejętności. Późniejszy komunikat potwierdzający zabójcę zastępuje tę wskazówkę; po wskrzeszeniu dane są czyszczone.
 
 Lista jest wspólna dla gildii: dodajecie ludzi przez **bota na Discordzie**, a addon ściąga aktualne dane z tego repo.
 
@@ -159,6 +160,8 @@ Folder: [`HuntListaBot/`](https://github.com/frethborn/HuntLista/tree/main/HuntL
    ```
 
 Bot odczytuje `Data.lua` z GitHuba przed każdą komendą. Plik w repozytorium jest źródłem danych; brak lub uszkodzenie starego `local_data.json` nie zeruje listy. Ten lokalny plik nie jest już używany. Przed aktualizacją bota zachowaj jego kopię, jeśli zawiera zmiany, których poprzednia wersja nie wysłała na GitHuba, i dodaj brakujące wpisy ponownie przez Discord.
+
+Komendy zmieniające dane (`/hunt add`, `remove`, `kill`, `killreset`) dopasowują **pełny nick**, bez rozróżniania wielkości liter. Skrót nie usuwa wpisu ani nie zmienia jego licznika. `/hunt add Audit` tworzy osobnego gracza `Audit`, nawet gdy istnieje `Audit Alpha`; aktualizacja wymaga wpisania `Audit Alpha`.
 
 Odczyt danych nie wykonuje kodu Lua. Niepoprawny format, brak pliku lub błąd odczytu blokują zapis. Komendy zmieniające listę są wykonywane kolejno, a konflikt SHA z innym zapisem wymaga ponowienia komendy. Przy niepewnym wyniku połączenia najpierw sprawdź `/hunt list`.
 

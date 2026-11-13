@@ -13,7 +13,7 @@ local sources = { ${Object.entries(sources).map(([name, code]) => `[${luaString(
 world = { now = 100, clients = {}, packets = {}, pending = {} }
 function client(name, options)
     options = options or {}
-    local c = { name = name, frames = {}, alerts = {}, logs = {}, sounds = 0,
+    local c = { name = name, frames = {}, filters = {}, alerts = {}, logs = {}, sounds = 0,
         inGuild = true, targetAlive = true, targetExists = false }
     local env = setmetatable({}, { __index = _G })
     env._G = env
@@ -41,6 +41,10 @@ function client(name, options)
     env.RaidWarningFrame = {}
     env.ChatTypeInfo = { RAID_WARNING = {} }
     env.SOUNDKIT = { RAID_WARNING = 1 }
+    env.ChatFrame_AddMessageEventFilter = function(event, callback)
+        c.filters[event] = c.filters[event] or {}
+        table.insert(c.filters[event], callback)
+    end
     env.C_EventUtils = { IsEventValid = function(event) return event ~= 'CHAT_MSG_COMBAT_HOSTILE_DEATH' end }
     env.CreateFrame = function()
         local frame = { events = {}, scripts = {} }
@@ -79,7 +83,10 @@ function client(name, options)
         end
     end
     function c:chat(message)
-        self:event('CHAT_MSG_SYSTEM', message)
+        assert(self.filters.CHAT_MSG_SYSTEM, 'Kill chat filter must be registered')
+        for _, callback in ipairs(self.filters.CHAT_MSG_SYSTEM) do
+            assert(callback(nil, 'CHAT_MSG_SYSTEM', message) == false)
+        end
     end
     function c:poll()
         for _, f in ipairs(self.frames) do
@@ -112,7 +119,7 @@ test('confirmed kill reaches guild clients once, without relaying or changing th
         local bob = client('Bob Warrior-Realm')
         local carol = client('Carol Healer-Realm')
         alice:chat('You have slain Mega Enemy.')
-        alice:event('CHAT_MSG_COMBAT_MISC_INFO', 'You have slain Mega Enemy.')
+        alice:chat('You have slain Mega Enemy.') -- another chat window can run the same filter again
         assert(#world.packets == 1)
         deliver()
         for _, c in ipairs(world.clients) do assert(#c.alerts == 1 and c.sounds == 1) end

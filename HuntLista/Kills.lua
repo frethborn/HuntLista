@@ -92,15 +92,17 @@ function HL:RecordKill(name, source)
     local display = info.name or name
     local key = strlower(strtrim(display))
 
+    -- Poll mogl juz naliczyc smierc. Potwierdzenie nadal musi dotrzec do gildii;
+    -- BroadcastGuildKill ma niezalezna ochrone przed podwojnym wyslaniem.
+    if source == "chat" and HL.BroadcastGuildKill then
+        HL:BroadcastGuildKill(name)
+    end
+
     local now = GetTime()
     if recentKillLock[key] and (now - recentKillLock[key]) < 3 then
         return false
     end
     recentKillLock[key] = now
-
-    if source == "chat" and HL.BroadcastGuildKill then
-        HL:BroadcastGuildKill(name)
-    end
 
     EnsureKillsDB()
     local e = HuntListaDB.kills[key]

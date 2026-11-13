@@ -94,6 +94,59 @@ test('enemy target, combat polling and someone else dying never identify a kille
     `);
 });
 
+test('a friendly target cannot become the killer when no death or damage message exists', () => {
+    scenario(`
+        enemy = false
+        targetName = 'Uninvolved Friend'
+        tick(true)
+        tick(true, 0.31)
+        noPopup()
+    `);
+});
+
+test('combat log is an unconfirmed attack, preserves ability text and yields to a confirmed killer', () => {
+    scenario(`
+        HuntLista.NameCache.eve = 'Eve Innocent Longname'
+        chat('Eve Deadly Poison II damaged You 97 Nature.')
+        tick(true)
+        tick(true, 0.31)
+        assert(HuntListaDeathFrame.editBox.text == 'Eve Deadly Poison II')
+        assert(HuntListaDeathFrame.title.text:find('Ostatni atak', 1, true))
+        assert(HuntListaDeathFrame.subtitle.text:find('niepotwierdzony', 1, true))
+        local count = HuntListaDeathFrame.shows
+        tick(true)
+        assert(HuntListaDeathFrame.shows == count)
+        chat('You were slain by Eve Short.')
+        chat('Other Attacker Melee hit You 46 Physical.')
+        tick(true)
+        assert(HuntListaDeathFrame.editBox.text == 'Eve Short')
+        assert(HuntListaDeathFrame.title.text:find('Zabil cie', 1, true))
+        assert(HuntListaDeathFrame.shows == count + 1)
+        chat('Third Attacker hit You 10 Physical.')
+        tick(true)
+        assert(HuntListaDeathFrame.editBox.text == 'Eve Short')
+        assert(HuntListaDeathFrame.shows == count + 1)
+    `);
+});
+
+test('stale combat damage and damage from a previous life do not populate the death popup', () => {
+    scenario(`
+        chat('Old Attacker Melee hit You 46 Physical.')
+        tick(true, 13)
+        tick(true, 0.31)
+        noPopup()
+        chat('Current Attacker Melee hit You 46 Physical.')
+        tick(true)
+        assert(HuntListaDeathFrame.editBox.text == 'Current Attacker')
+        assert(HuntListaDeathFrame.title.text:find('Ostatni atak', 1, true))
+        tick(false)
+        noPopup()
+        tick(true)
+        tick(true, 0.31)
+        noPopup()
+    `);
+});
+
 test('a delayed death message still opens the popup', () => {
     scenario(`
         tick(true)

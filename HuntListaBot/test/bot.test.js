@@ -53,11 +53,12 @@ async function startBot() {
         console: { log() {}, error() {} },
     });
     await new Promise(resolve => setImmediate(resolve));
-    bot.command = async (sub, nick, reason = '') => {
+    bot.command = async (sub, nick, reason = '', count = 1) => {
         const interaction = {
             deferred: false, replies: [], user: { username: 'test-user' }, commandName: 'hunt',
             isChatInputCommand: () => true,
-            options: { getSubcommand: () => sub, getString: key => key === 'nick' ? nick : reason },
+            options: { getSubcommand: () => sub, getString: key => key === 'nick' ? nick : reason,
+                getInteger: () => count },
             async deferReply() { this.deferred = true; },
             async editReply(reply) { for (const embed of reply.embeds || []) embed.toJSON(); this.replies.push(reply); },
             async reply(reply) { this.replies.push(reply); },
@@ -114,4 +115,50 @@ test('prototype-like player keys survive actual add and remove commands', async 
         assert.equal(Object.hasOwn(parseDataLua(bot.remote).players, name), false);
     }
     assert.equal(Object.keys(parseDataLua(bot.remote).players).length, originalCount);
+});
+
+test('adding a shorter full nick creates a separate player instead of overwriting a prefix match', async () => {
+    const bot = await startBot();
+    await bot.command('add', 'Audit Alpha', 'original');
+    await bot.command('kill', 'Audit Alpha', '', 3);
+    const before = parseDataLua(bot.remote).players['Audit Alpha'];
+    await bot.command('add', 'Audit', 'new player');
+    const after = parseDataLua(bot.remote).players;
+    assert.deepEqual(after['Audit Alpha'], before);
+    assert.equal(after.Audit.reason, 'new player');
+    assert.equal(after.Audit.kills, '0');
+});
+
+test('remove, kill and killreset never mutate unique or ambiguous prefix matches', async () => {
+    const bot = await startBot();
+    await bot.command('add', 'Audit Alpha', 'first');
+    await bot.command('kill', 'Audit Alpha', '', 3);
+    for (const ambiguous of [false, true]) {
+        if (ambiguous) await bot.command('add', 'Audit Beta', 'second');
+        const before = bot.remote;
+        const writes = bot.writes;
+        for (const sub of ['remove', 'kill', 'killreset']) {
+            const reply = await bot.command(sub, 'Audit');
+            assert.match(reply.content, /pełnego nicku/);
+            assert.equal(bot.writes, writes);
+            assert.equal(bot.remote, before);
+        }
+    }
+});
+
+test('exact full names remain case-insensitive for every mutation and take priority over longer names', async () => {
+    const bot = await startBot();
+    await bot.command('add', 'Audit Alpha', 'keep');
+    await bot.command('add', 'Audit', 'first');
+    const longer = parseDataLua(bot.remote).players['Audit Alpha'];
+    await bot.command('add', 'AUDIT', 'updated');
+    await bot.command('kill', 'aUdIt', '', 4);
+    assert.equal(parseDataLua(bot.remote).players.Audit.kills, '4');
+    assert.equal(parseDataLua(bot.remote).players.Audit.reason, 'updated');
+    await bot.command('killreset', 'audit');
+    assert.equal(parseDataLua(bot.remote).players.Audit.kills, '0');
+    await bot.command('remove', 'AUDIT');
+    const after = parseDataLua(bot.remote).players;
+    assert.equal(Object.hasOwn(after, 'Audit'), false);
+    assert.deepEqual(after['Audit Alpha'], longer);
 });
