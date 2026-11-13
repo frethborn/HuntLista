@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-13.1",
-    lastUpdate = "2026-11-13 01:40",
+    version = "2026-11-13.2",
+    lastUpdate = "2026-11-13 21:31",
     updatedBy = "DiscordBot",
 
     players = {
@@ -148,6 +148,15 @@ HuntLista_Data = {
             reason = "",
             addedBy = "grobel",
             addedAt = "2026-11-12",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["loredon angel"] = {
+            reason = "napadl mnie z przyczajki 2v1 i jeszcze dostal w pizde xpp",
+            addedBy = "kkkelv",
+            addedAt = "2026-11-13",
             note = "",
             kills = "0",
             lastKillBy = "",
