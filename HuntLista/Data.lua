@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-14.1",
-    lastUpdate = "2026-11-14 08:54",
+    version = "2026-11-14.2",
+    lastUpdate = "2026-11-14 10:19",
     updatedBy = "DiscordBot",
 
     players = {
@@ -301,6 +301,15 @@ HuntLista_Data = {
             reason = "",
             addedBy = "emwues",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Xendas Rogue"] = {
+            reason = "oby zdech",
+            addedBy = "frethborn",
+            addedAt = "2026-11-14",
             note = "",
             kills = "0",
             lastKillBy = "",
