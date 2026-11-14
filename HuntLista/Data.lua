@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-13.3",
-    lastUpdate = "2026-11-13 21:32",
+    version = "2026-11-14.1",
+    lastUpdate = "2026-11-14 08:54",
     updatedBy = "DiscordBot",
 
     players = {
@@ -220,6 +220,15 @@ HuntLista_Data = {
             reason = "",
             addedBy = "grobel",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["nuk jay"] = {
+            reason = "cwel pierdolony",
+            addedBy = "kkkelv",
+            addedAt = "2026-11-14",
             note = "",
             kills = "0",
             lastKillBy = "",
