@@ -55,7 +55,7 @@ function HL:GetTotalKills()
     return n
 end
 
-local function ShowKillAlert(display, count, reason)
+local function ShowKillAlert(display, count, reason, queued)
     local reasonTxt = (reason and reason ~= "") and (" - " .. reason) or ""
     local msg = "|cff00ff00[HUNT KILL]|r |cffffff00" .. display .. "|r |cff88ff88x" .. count .. "|r" .. reasonTxt
 
@@ -72,7 +72,7 @@ local function ShowKillAlert(display, count, reason)
     end
 
     print(msg)
-    print("|cffaaaaaaZglos na Discord:|r /hunt kill " .. display)
+    if not queued then print("|cffaaaaaaZglos na Discord:|r /hunt kill " .. display) end
 
     if HL.PlayHuntSound then
         HL:PlayHuntSound()
@@ -103,7 +103,8 @@ function HL:RecordKill(name, source)
     local display = info.name or name
     local key = strlower(strtrim(display))
 
-    -- Wysylka ma wlasna deduplikacje i moze ponowic probe po bledzie.
+    -- Dziennik i powiadomienia maja wlasna deduplikacje.
+    local queued = automatic and HL.QueueRankingKill and HL:QueueRankingKill(display)
     if automatic and HL.BroadcastGuildKill then
         HL:BroadcastGuildKill(display)
     end
@@ -124,7 +125,7 @@ function HL:RecordKill(name, source)
     e.lastAt = time and time() or 0
     e.name = display
 
-    ShowKillAlert(display, e.count, info.reason)
+    ShowKillAlert(display, e.count, info.reason, queued)
 
     if HuntListaDB and HuntListaDB.debug then
         print("|cff888888[HL kills]|r source=" .. tostring(source))

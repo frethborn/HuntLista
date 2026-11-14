@@ -23,3 +23,6 @@ Przed podmianą updater sprawdza UTF-8, składnię i strukturę danych bez wykon
 - Program musi byc uruchomiony w tle podczas gry
 - WoW nie moze sam sciagac plikow z internetu - dlatego to zewnetrzny tool
 - Wymaga Windows + PowerShell (wbudowany w system)
+## Opcjonalna synchronizacja rankingu
+
+Ten updater pobiera `Data.lua`. Wysyłkę nowych zabójstw z gry obsługuje osobny program: [konfiguracja automatycznego rankingu](../docs/ranking-sync.md). Nie wpisuj tokenów Discorda/GitHuba do updatera ani addona.

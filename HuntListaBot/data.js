@@ -1,5 +1,6 @@
 const luaparse = require('luaparse');
 const { TextDecoder } = require('node:util');
+const { readLedger, writeLedger } = require('./sync-ledger');
 
 const utf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 const metadata = ['version', 'lastUpdate', 'updatedBy'];
@@ -124,16 +125,19 @@ function createDataStore(octokit, repository) {
         const encoded = file.content.replace(/\s/g, '');
         const bytes = Buffer.from(encoded, 'base64');
         if (bytes.toString('base64') !== encoded) throw new Error('Niepoprawna zawartość pliku z GitHuba.');
-        return { data: parseDataLua(utf8.decode(bytes)), sha: file.sha };
+        const content = utf8.decode(bytes);
+        return { data: parseDataLua(content), ledger: readLedger(content), sha: file.sha };
     }
     return {
         async read() { return (await readSnapshot()).data; },
         update(change) {
             const result = pending.then(async () => {
-                const { data, sha } = await readSnapshot();
-                if (change(data) === false) return { changed: false, data };
+                const { data, ledger, sha } = await readSnapshot();
+                if (change(data, ledger) === false) return { changed: false, data };
                 bumpVersion(data);
-                const content = Buffer.from(generateLua(data), 'utf8').toString('base64');
+                const output = writeLedger(ledger) + generateLua(data);
+                parseDataLua(output); // Enforce the full file limit, including the ledger.
+                const content = Buffer.from(output, 'utf8').toString('base64');
                 await octokit.rest.repos.createOrUpdateFileContents({
                     ...repository, sha, content,
                     message: `Hunt Lista update ${data.version} (${Object.keys(data.players).length} graczy)`,

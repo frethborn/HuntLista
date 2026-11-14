@@ -5,6 +5,7 @@
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
+    "sync": "node ranking-companion.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

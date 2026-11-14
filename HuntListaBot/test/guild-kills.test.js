@@ -4,7 +4,7 @@ const path = require('node:path');
 const { runLua } = require('./lua');
 const { luaString } = require('../data');
 const addonPath = path.join(__dirname, '../../HuntLista');
-const sources = Object.fromEntries(['Core.lua', 'Kills.lua', 'KillDetection.lua', 'GuildKills.lua'].map(name =>
+const sources = Object.fromEntries(['Core.lua', 'RankingSync.lua', 'Kills.lua', 'KillDetection.lua', 'GuildKills.lua'].map(name =>
     [name, luaString(fs.readFileSync(path.join(addonPath, name), 'utf8'))]));
 
 // Separate Lua environments model clients sharing only addon messages, never SavedVariables.
@@ -15,10 +15,11 @@ function client(name, options)
     options = options or {}
     local c = { name = name, frames = {}, filters = {}, alerts = {}, logs = {}, sounds = 0,
         inGuild = true, targetAlive = true, targetExists = false,
-        units = { player = { guid = 'Player-1-' .. name }, pet = { guid = 'Pet-1-' .. name } } }
+        units = { player = { guid = options.guid or 'Player-1-' .. name:gsub('[^%w-]', '') }, pet = { guid = 'Pet-1-' .. name } } }
     local env = setmetatable({}, { __index = _G })
     env._G = env
-    env.HuntListaDB = {}
+    env.HuntListaDB = options.savedDB or {}
+    env.HuntListaSync = options.savedSync
     env.HuntLista_Data = { version = 'test', players = {
         ['Mega Enemy'] = {}, ['Mega Rival'] = {}, ['Bad Guy'] = {}, ['Tollwütige Fledermaus'] = {},
         ['Case Conflict'] = {}, ['case conflict'] = {}, ['Mega Enemy-Slayer'] = {}
@@ -90,7 +91,7 @@ function client(name, options)
         end,
     }
     if options.noAPI then env.C_ChatInfo = false end
-    for _, file in ipairs({'Core.lua', 'Kills.lua', 'KillDetection.lua', 'GuildKills.lua'}) do
+    for _, file in ipairs({'Core.lua', 'RankingSync.lua', 'Kills.lua', 'KillDetection.lua', 'GuildKills.lua'}) do
         assert(load(sources[file], file, 't', env))('HuntLista', {})
     end
     c.env = env
@@ -480,5 +481,150 @@ test('native detection respects toggles and retries a failed guild send without 
         world.now = world.now + 4
         alice:kill('Player-1-victim')
         assert(alice.env.HuntLista:GetTotalKills() == 2 and #world.packets == 2)
+    `);
+});
+
+test('ranking opt-in applies to new confirmed kills and survives reload and local reset', () => {
+    scenario(`
+        local alice, bob = client('Alice'), client('Bob')
+        local guid = alice.units.player.guid
+        alice.env.HuntListaDB.kills.bad = { count = 12 }
+        alice:chat('You have slain Mega Rival.')
+        assert(alice.env.HuntListaSync == nil)
+        alice:command('status')
+        assert(table.concat(alice.logs):find('Synchronizacja rankingu: OFF', 1, true))
+        assert(table.concat(alice.logs):find(guid, 1, true))
+
+        alice:command('rankingsync on')
+        alice:chat('You have slain Mega Rival.', 'CHAT_MSG_COMBAT_MISC_INFO')
+        alice:command('kill Bad Guy')
+        assert(alice.env.HuntListaSync == nil)
+        alice:unit('target', 'Player-1-victim', 'Bad', 'Guy')
+        alice:kill('Player-1-victim', alice.units.pet.guid)
+        alice:chat('You have slain Bad Guy.')
+        deliver()
+        local journal = alice.env.HuntListaSync
+        local character = journal.characters[guid]
+        local stream = character.stream
+        assert(stream:match('^[A-Za-z0-9:%-]+$') and #stream <= 160)
+        assert(journal.version == 1 and character.counts['Mega Rival'] == nil)
+        assert(character.counts['Bad Guy'].count == 1 and character.counts['Bad Guy'].lastAt == 1100)
+        assert(alice.env.HuntListaDB.kills['bad guy'].count == 1)
+        assert(bob.env.HuntListaSync == nil)
+
+        alice.logs = {}
+        alice:chat('You have slain Tollwütige Fledermaus.')
+        assert(character.counts['Tollwütige Fledermaus'].count == 1)
+        assert(not table.concat(alice.logs):find('/hunt kill', 1, true))
+        alice:command('killreset')
+        assert(alice.env.HuntLista:GetTotalKills() == 0 and character.counts['Bad Guy'].count == 1)
+
+        local reloaded = client('Alice', {savedSync = journal, savedDB = alice.env.HuntListaDB})
+        world.now = 105
+        reloaded:chat('You have slain Bad Guy.')
+        assert(reloaded.env.HuntListaSync.characters[guid].stream == stream)
+        assert(character.counts['Bad Guy'].count == 2 and character.counts['Bad Guy'].lastAt == 1105)
+        reloaded:command('status')
+        assert(table.concat(reloaded.logs):find('Zabójstwa w dzienniku postaci: 3', 1, true))
+
+        reloaded:command('rankingsync off')
+        reloaded.logs = {}
+        world.now = 110
+        reloaded:chat('You have slain Bad Guy.')
+        assert(character.counts['Bad Guy'].count == 2)
+        assert(table.concat(reloaded.logs):find('/hunt kill Bad Guy', 1, true))
+        reloaded:command('rankingsync on')
+        world.now = 115
+        reloaded:chat('You have slain Bad Guy.')
+        assert(character.counts['Bad Guy'].count == 3 and character.stream == stream)
+    `);
+});
+
+test('ranking stores character streams and opt-in separately in shared SavedVariables', () => {
+    scenario(`
+        local alice = client('Alice')
+        alice:command('rankingsync on')
+        alice:chat('You have slain Mega Enemy.')
+        local journal = alice.env.HuntListaSync
+        local alt = client('Alt', {savedSync = journal, savedDB = alice.env.HuntListaDB})
+        local guid = alt.units.player.guid
+        alt:chat('You have slain Mega Enemy.')
+        assert(journal.characters[guid] == nil)
+        alt:command('rankingsync on')
+        world.now = 105
+        alt:chat('You have slain Mega Enemy.')
+        assert(journal.characters[guid].counts['Mega Enemy'].count == 1)
+        local own = journal.characters[alice.units.player.guid]
+        assert(own.counts['Mega Enemy'].count == 1 and own.stream ~= journal.characters[guid].stream)
+    `);
+});
+
+test('ranking skips hidden player GUIDs while keeping chat kills and guild notices', () => {
+    scenario(`
+        local alice = client('Alice')
+        alice:command('rankingsync on')
+        local secret = setmetatable({}, {
+            __tostring = function() error('Secret GUID converted to text') end,
+            __index = function() error('Secret GUID inspected') end,
+            __concat = function() error('Secret GUID concatenated') end
+        })
+        alice.secret = secret
+        alice.units.player.guid = secret
+        alice:chat('You have slain Bad Guy.')
+        alice:command('status')
+        assert(alice.env.HuntLista:GetTotalKills() == 1 and #world.packets == 1)
+        assert(alice.env.HuntListaSync == nil)
+        assert(table.concat(alice.logs):find('brak jawnego GUID postaci', 1, true))
+    `);
+});
+
+test('invalid ranking SavedVariables preserve the original journal and report a local failure', () => {
+    scenario(`
+        for _, journal in ipairs({
+            false,
+            {version = 2, characters = {}},
+            {version = 1, characters = {['Player-1-Bob'] = {stream = 'stream', counts = {
+                ['Bad Guy'] = {count = -1, lastAt = 1100}
+            }}}}
+        }) do
+            local alice = client('Alice', {savedSync = journal})
+            alice.env.HuntListaDB.rankingSyncEnabled = {[alice.units.player.guid] = true}
+            local before = #world.packets
+            alice:chat('You have slain Mega Enemy.')
+            alice:command('status')
+            assert(alice.env.HuntListaSync == journal)
+            if type(journal) == 'table' then assert(journal.characters[alice.units.player.guid] == nil) end
+            assert(alice.env.HuntLista:GetTotalKills() == 1 and #world.packets == before + 1)
+            assert(table.concat(alice.logs):find('nieprawidłowy zapis HuntListaSync', 1, true))
+        end
+    `);
+});
+
+test('ranking journal limits preserve existing entries and leave local kills usable', () => {
+    scenario(`
+        local journal = {version = 1, characters = {}}
+        for i = 1, 64 do
+            journal.characters['Player-1-' .. i] = {stream = 'stream-' .. i, counts = {}}
+        end
+        local full = journal.characters['Player-1-1'].counts
+        full['Bad Guy'] = {count = 1000000000, lastAt = 1050}
+        for i = 2, 256 do full['Victim ' .. i] = {count = 1, lastAt = 1050} end
+
+        local alice = client('Alice', {savedSync = journal})
+        alice:command('rankingsync on')
+        alice:chat('You have slain Bad Guy.')
+        assert(journal.characters[alice.units.player.guid] == nil)
+        assert(alice.env.HuntLista:GetTotalKills() == 1)
+        assert(table.concat(alice.logs):find('limit postaci', 1, true))
+
+        local existing = client('Existing', {guid = 'Player-1-1', savedSync = journal})
+        existing:command('rankingsync on')
+        existing:chat('You have slain Bad Guy.')
+        existing:chat('You have slain Mega Enemy.')
+        assert(full['Bad Guy'].count == 1000000000 and full['Bad Guy'].lastAt == 1050)
+        assert(full['Mega Enemy'] == nil and full['Victim 256'].count == 1)
+        assert(existing.env.HuntLista:GetTotalKills() == 2)
+        local logs = table.concat(existing.logs)
+        assert(logs:find('limit zabójstw', 1, true) and logs:find('limit nicków', 1, true))
     `);
 });

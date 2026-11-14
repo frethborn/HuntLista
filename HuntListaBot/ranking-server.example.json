@@ -1,0 +1,12 @@
+{
+  "port": 3210,
+  "reporters": [
+    {
+      "id": "gracz1",
+      "token": "UZUPELNIJ_WYGENEROWANY_KLUCZ",
+      "characters": {
+        "Player-0000-00000000": "Imie Nazwisko"
+      }
+    }
+  ]
+}

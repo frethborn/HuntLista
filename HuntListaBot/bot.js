@@ -28,6 +28,10 @@ const store = createDataStore(new Octokit({ auth: GITHUB_TOKEN }), {
     owner: GITHUB_OWNER, repo: GITHUB_REPO, path: GITHUB_PATH,
 });
 
+if (process.env.RANKING_SYNC_CONFIG) {
+    require('./ranking-server').startRankingServer(store, process.env.RANKING_SYNC_CONFIG);
+}
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const commands = [
@@ -178,7 +182,7 @@ client.on('interactionCreate', async interaction => {
                 newCount = cur + ile;
                 p.kills = String(newCount);
                 p.lastKillBy = user;
-                p.lastKillAt = new Date().toISOString().slice(0, 16).replace('T', ' ');
+                p.lastKillAt = new Date().toISOString().slice(0, 19).replace('T', ' ');
                 if (!p.reason) p.reason = p.reason || '';
                 if (!p.addedBy) p.addedBy = p.addedBy || '';
                 if (!p.addedAt) p.addedAt = p.addedAt || '';

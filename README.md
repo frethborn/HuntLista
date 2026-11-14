@@ -20,6 +20,7 @@ Lista jest wspólna dla gildii: dodajecie ludzi przez **bota na Discordzie**, a 
 | Okno listy | `/hl` — podgląd całej listy |
 | Okienko po śmierci | Nick zabójcy do skopiowania (Ctrl+C) |
 | Powiadomienia gildii | Kto zabił gracza z listy — komunikat i dźwięk dla członków gildii z addonem |
+| Automatyczny ranking (opcjonalny) | Nowe potwierdzone zabójstwa → zapis po `/reload`/wylogowaniu → program gracza → bot → GitHub |
 | Updater (ręczny) | Jednorazowe ściągnięcie `Data.lua` |
 | **Auto Updater** | Okno Windows — aktualizacja bazy co X minut |
 | Discord bot | `/hunt add` / `remove` / `list` → push na GitHub |
@@ -46,6 +47,7 @@ UI.lua
 Alerts.lua
 Death.lua
 Kills.lua
+RankingSync.lua
 KillDetection.lua
 GuildKills.lua
 ```
@@ -72,6 +74,8 @@ GuildKills.lua
 | `/hl guildkills off` | Wyłącza powiadomienia o zabójstwach dla tej instalacji addona |
 | `/hl kills` | Wspólny ranking i osobny licznik lokalny |
 | `/hl kill Nick` | Ręczna korekta lokalna; wspólny ranking zmienia `/hunt kill Nick` na Discordzie |
+| `/hl rankingsync on` | Włącza eksport nowych automatycznych zabójstw tej postaci (wymaga konfiguracji programu i bota) |
+| `/hl rankingsync off` | Zatrzymuje dopisywanie nowych zabójstw do eksportu |
 
 Alias: `/huntlista` działa tak samo jak `/hl`.
 
@@ -87,9 +91,9 @@ Jeśli klient ukrywa GUID lub nazwę (`secret values`), addon pomija zdarzenie. 
 
 `/hl status` pokazuje rejestrację wykrywania, liczbę zdarzeń od `/reload`, naliczenia z listy oraz pominięcia przez ukryte dane, brak nicku i cudzego zabójcę. Sama rejestracja nie potwierdza otrzymania zabójstwa. Błędy wysyłania są pokazane lokalnie. [Źródła API i procedura sprawdzenia w grze](docs/forever-kill-detection.md).
 
-Automatyka zmienia **lokalny licznik i wysyła powiadomienie w grze**. Nie aktualizuje wspólnego rankingu na GitHubie/Discordzie — nadal służy do tego `/hunt kill Nick`. `/hl kill Nick` pozostaje ręczną korektą lokalną i nie ogłasza zabójstwa gildii.
+Domyślnie automatyka zmienia **lokalny licznik i wysyła powiadomienie w grze**. Od **1.4.0** można też włączyć [automatyczną synchronizację wspólnego rankingu](docs/ranking-sync.md). Wymaga programu na komputerze gracza oraz endpointu HTTPS bota i działa po zapisaniu danych gry przez `/reload` lub wylogowanie. Eksport jest domyślnie wyłączony; `/hl rankingsync on` obejmuje tylko nowe automatyczne zabójstwa. Bez konfiguracji pozostaje `/hunt kill Nick` na Discordzie. Nie zgłaszaj ręcznie tego samego zabójstwa, które eksportujesz. `/hl kill Nick` jest wyłącznie korektą lokalną.
 
-Instalacja tej funkcji wymaga aktualizacji całego folderu `HuntLista`, w tym `KillDetection.lua`, `GuildKills.lua` i pliku `.toc`, oraz ponownego uruchomienia gry po dodaniu nowego modułu. Updatery pobierające tylko `Data.lua` nie instalują nowego kodu addona.
+Instalacja tej funkcji wymaga aktualizacji całego folderu `HuntLista`, w tym `RankingSync.lua`, `KillDetection.lua`, `GuildKills.lua` i pliku `.toc`, oraz ponownego uruchomienia gry po dodaniu nowego modułu. Updatery pobierające tylko `Data.lua` nie instalują nowego kodu addona.
 
 ---
 
@@ -174,7 +178,9 @@ Komendy zmieniające dane (`/hunt add`, `remove`, `kill`, `killreset`) dopasowuj
 
 Odczyt danych nie wykonuje kodu Lua. Niepoprawny format, brak pliku lub błąd odczytu blokują zapis. Komendy zmieniające listę są wykonywane kolejno, a konflikt SHA z innym zapisem wymaga ponowienia komendy. Przy niepewnym wyniku połączenia najpierw sprawdź `/hunt list`.
 
-Testy regresji (Node.js 20+): w folderze `HuntListaBot` uruchom `npm ci` i `npm test`. Testy obejmują zapis/odczyt tekstu Lua, operacje na liście z atrapą GitHuba, wykrywanie zabójcy, licznik, dźwięki oraz powiadomienia między symulowanymi klientami gildii z atrapami API WoW. Na Windows uruchamiają też Windows PowerShell 5.1: sprawdzają zgodność walidatora z parserem bota, podmianę plików, backup, błędy pobierania/zapisu i oba updatery. Ten test jest pomijany na innych systemach. Testy nie wymagają tokenów ani połączenia z grą; pliki testowe powstają w izolowanym katalogu tymczasowym.
+Testy regresji (Node.js 22+): w folderze `HuntListaBot` uruchom `npm ci` i `npm test`. Testy obejmują zapis/odczyt tekstu Lua, operacje na liście z atrapą GitHuba, wykrywanie zabójcy, licznik, dźwięki oraz powiadomienia między symulowanymi klientami gildii z atrapami API WoW. Sprawdzają też dziennik SavedVariables, program synchronizujący, lokalny serwer HTTP i bezpieczne ponawianie importów rankingu. Na Windows uruchamiają Windows PowerShell 5.1: sprawdzają zgodność walidatora z parserem bota, podmianę plików, backup, błędy pobierania/zapisu i oba updatery. Ten test jest pomijany na innych systemach. Testy wymagają połączeń do loopback, ale nie potrzebują prawdziwych tokenów, zewnętrznego GitHuba ani gry; pliki powstają w izolowanym katalogu tymczasowym.
+
+Opcjonalne wdrożenie importu rankingu: [instrukcja administratora i gracza](docs/ranking-sync.md). Nowy bot zachowuje komentarz `HuntListaSyncLedger` w `Data.lua`; nie usuwaj go ani nie uruchamiaj starego bota zapisującego ten plik po uruchomieniu importu.
 
 ---
 

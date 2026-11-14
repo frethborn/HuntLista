@@ -1,3 +1,5 @@
 node_modules/
 .env
 local_data.json
+ranking-server.json
+ranking-companion.json

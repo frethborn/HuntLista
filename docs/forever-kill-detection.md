@@ -2,6 +2,8 @@
 
 Stan analizy: 14 listopada 2026, addon 1.3.9. Źródła klienta: Forever **1.60.1 (70938)**, commit `bebcb6bf309cf41b41bd74f8ca651e6a105b2676` w eksporcie kodu UI Blizzarda.
 
+Aktualizacja 1.4.0: potwierdzone zabójstwa można także eksportować do [wspólnego rankingu przez program poza grą](ranking-sync.md). Wymaga to osobnej konfiguracji i włączenia; poniższa analiza dotyczy wykrywania zabójstw w kliencie.
+
 ## Co potwierdzają źródła
 
 - [`PARTY_KILL(attackerGUID, targetGUID)`](https://github.com/Gethe/wow-ui-source/blob/bebcb6bf309cf41b41bd74f8ca651e6a105b2676/Interface/AddOns/Blizzard_APIDocumentationGenerated/UnitDocumentation.lua#L3724-L3733) jest osobnym zdarzeniem ramki. Nie wymaga odczytu combat logu. Payload może być ukryty przy ograniczeniu tożsamości jednostek (`SecretWhenUnitIdentityRestricted`).

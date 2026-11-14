@@ -31,6 +31,7 @@ test('Windows PowerShell 5.1 validates Lua and preserves live data and backups o
         cases.push(entry);
     };
     add('current repository data', original, true);
+    add('ranking import receipt comment', '-- HuntListaSyncLedger v1: {"' + 'a'.repeat(64) + '":12}\n' + original, true);
     add('generated Unicode and escaping', valid, true);
     add('UTF-8 BOM', '\uFEFF' + valid, true);
     add('long comment and long string', '--[==[ignored {} function()]==]\n' + literal('[=[\r\nfirst\r\nsecond]=]'), true);

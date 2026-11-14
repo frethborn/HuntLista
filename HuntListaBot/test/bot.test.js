@@ -9,7 +9,7 @@ const source = fs.readFileSync(path.join(__dirname, '../bot.js'), 'utf8');
 const original = fs.readFileSync(path.join(__dirname, '../../HuntLista/Data.lua'), 'utf8');
 const originalCount = Object.keys(parseDataLua(original).players).length;
 
-async function startBot() {
+async function startBot(sync = false) {
     const handlers = {};
     const bot = { remote: original, sha: '1', writes: 0, error: null };
     class Client {
@@ -41,6 +41,9 @@ async function startBot() {
     }
     const mocks = {
         dotenv: { config() {} }, 'discord.js': { ...discord, Client, REST }, octokit: { Octokit }, './data': require('../data'),
+        './ranking-server': { startRankingServer(store, configPath) {
+            assert.equal(configPath, 'test-reporters.json'); bot.syncStore = store;
+        } },
     };
     vm.runInNewContext(source, {
         require(name) {
@@ -48,7 +51,8 @@ async function startBot() {
             assert.ok(Object.hasOwn(mocks, name), 'Unexpected dependency: ' + name);
             return mocks[name];
         },
-        process: { env: { DISCORD_TOKEN: 'test', GITHUB_TOKEN: 'test', CLIENT_ID: 'test', GUILD_ID: 'test' },
+        process: { env: { DISCORD_TOKEN: 'test', GITHUB_TOKEN: 'test', CLIENT_ID: 'test', GUILD_ID: 'test',
+            RANKING_SYNC_CONFIG: sync ? 'test-reporters.json' : '' },
             exit() { throw new Error('Unexpected exit'); } },
         console: { log() {}, error() {} },
     });
@@ -85,6 +89,24 @@ test('actual command handler recovers the remote list without reading any local 
     const list = await bot.command('list');
     if (originalCount) assert.equal(list.embeds[0].data.title, `Hunt Lista (${originalCount})`);
     else assert.equal(list.content, 'Lista jest pusta.');
+});
+
+test('optional ranking server shares the command store and killreset preserves import receipts', async () => {
+    const bot = await startBot(true);
+    await bot.command('add', 'Sync Enemy');
+    const { importRanking } = require('../ranking-sync');
+    const reporter = { characters: { 'Player-1-123': 'Alice Archer' } };
+    const rows = [{ playerGUID: 'Player-1-123', stream: 'session:123', victim: 'Sync Enemy', count: 1, lastAt: 1700000000 }];
+    await importRanking(bot.syncStore, reporter, rows);
+    assert.equal(parseDataLua(bot.remote).players['Sync Enemy'].kills, '1');
+    await bot.command('killreset', 'Sync Enemy');
+    const before = bot.writes;
+    await importRanking(bot.syncStore, reporter, rows);
+    assert.equal(parseDataLua(bot.remote).players['Sync Enemy'].kills, '0');
+    assert.equal(bot.writes, before);
+    rows[0].count++;
+    await importRanking(bot.syncStore, reporter, rows);
+    assert.equal(parseDataLua(bot.remote).players['Sync Enemy'].kills, '1');
 });
 
 test('invalid nick and too-long reason do not write or report success', async () => {

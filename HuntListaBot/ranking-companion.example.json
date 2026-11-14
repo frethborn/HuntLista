@@ -1,0 +1,7 @@
+{
+  "endpoint": "https://sync.example.org/v1/kills",
+  "token": "UZUPELNIJ_WYGENEROWANY_KLUCZ",
+  "savedVariables": "C:\\Program Files (x86)\\World of Warcraft\\_forever_\\WTF\\Account\\NAZWA_KONTA\\SavedVariables\\HuntLista.lua",
+  "characters": ["Player-0000-00000000"],
+  "intervalSeconds": 30
+}

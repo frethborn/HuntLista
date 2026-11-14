@@ -6,7 +6,7 @@ local addonName, ns = ...
 HuntLista = HuntLista or {}
 local HL = HuntLista
 
-HL.version = "1.3.9"
+HL.version = "1.4.0"
 HL.dataVersion = (HuntLista_Data and HuntLista_Data.version) or "brak"
 
 local defaults = {
@@ -197,9 +197,12 @@ SlashCmdList["HUNTLISTA"] = function(msg)
         print("  Zabojstwa gildii: " .. HL:GetSharedTotalKills())
         print("  Zabojstwa lokalne (Ty): " .. (HL.GetTotalKills and HL:GetTotalKills() or 0))
         if HL.PrintKillDetectionStatus then HL:PrintKillDetectionStatus() end
+        if HL.PrintRankingSyncStatus then HL:PrintRankingSyncStatus() end
         print("  Death popup: " .. ((HuntListaDB.deathPopup ~= false) and "ON" or "OFF"))
         print("  Sound: " .. ((HuntListaDB.sound ~= false) and "ON" or "OFF") .. " (" .. (HuntListaDB.soundPreset or "raid") .. ")")
         print("  Powiadomienia gildii: " .. (HuntListaDB.guildKillAlerts and "ON" or "OFF") .. " (" .. (HL.guildKillStatus or "?") .. ")")
+    elseif msg == "rankingsync on" or msg == "rankingsync off" then
+        HL:SetRankingSyncEnabled(msg == "rankingsync on")
     elseif msg == "guildkills" or msg == "guildkills on" then
         HuntListaDB.guildKillAlerts = true
         print("Powiadomienia gildii: ON")
@@ -267,6 +270,7 @@ SlashCmdList["HUNTLISTA"] = function(msg)
         print("|cff00ff00Hunt Lista|r: /hl  /hl kills  /hl kill Nick")
         print("  Discord sync: /hunt kill Nick  (potem Auto Updater)")
         print("  /hl status  /hl killer  /hl death  /hl test")
+        print("  /hl rankingsync on|off")
         print("  /hl guildkills on  /hl guildkills off")
         print("  dzwiek: w oknie /hl (dolny pasek)")
     end
