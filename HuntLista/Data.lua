@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-14.5",
-    lastUpdate = "2026-11-14 16:44",
+    version = "2026-11-16.1",
+    lastUpdate = "2026-11-16 16:03",
     updatedBy = "DiscordBot",
 
     players = {
@@ -139,6 +139,15 @@ HuntLista_Data = {
             reason = "nie potrafi poczekac 30s",
             addedBy = "kkkelv",
             addedAt = "2026-11-14",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Jolly Poppins"] = {
+            reason = "nie grajcie z nim dungow",
+            addedBy = "grobel",
+            addedAt = "2026-11-16",
             note = "",
             kills = "0",
             lastKillBy = "",
