@@ -4,7 +4,7 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-16.2",
+    version = "2026-11-16.3",
     lastUpdate = "2026-11-16 16:10",
     updatedBy = "DiscordBot",
 
@@ -272,6 +272,15 @@ HuntLista_Data = {
         },
         ["Rollyd Btw"] = {
             reason = "cwel z kolega cwelem",
+            addedBy = "gnatek",
+            addedAt = "2026-11-16",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["rollyd ear"] = {
+            reason = "kolega cwel cwela",
             addedBy = "gnatek",
             addedAt = "2026-11-16",
             note = "",
