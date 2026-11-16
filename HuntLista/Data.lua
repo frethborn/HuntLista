@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-16.1",
-    lastUpdate = "2026-11-16 16:03",
+    version = "2026-11-16.2",
+    lastUpdate = "2026-11-16 16:10",
     updatedBy = "DiscordBot",
 
     players = {
@@ -265,6 +265,15 @@ HuntLista_Data = {
             reason = "pionek",
             addedBy = "frethborn",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Rollyd Btw"] = {
+            reason = "cwel z kolega cwelem",
+            addedBy = "gnatek",
+            addedAt = "2026-11-16",
             note = "",
             kills = "0",
             lastKillBy = "",
