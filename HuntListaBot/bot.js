@@ -36,19 +36,15 @@ function roleIds(value = '') {
     return value.split(',').map(id => id.trim()).filter(Boolean);
 }
 
-const contributorRoles = roleIds(process.env.CONTRIBUTOR_ROLE_IDS);
 const moderatorRoles = roleIds(process.env.MODERATOR_ROLE_IDS);
 const writeCommands = new Set(['add', 'kill', 'remove', 'killreset']);
 const moderatorCommands = new Set(['remove', 'killreset']);
 
-function mayWrite(interaction, sub) {
+function mayModerate(interaction) {
     if (interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) return true;
 
     const roles = interaction.member.roles;
-    const permittedRoles = moderatorCommands.has(sub)
-        ? moderatorRoles
-        : [...moderatorRoles, ...contributorRoles];
-    return permittedRoles.some(id =>
+    return moderatorRoles.some(id =>
         id === interaction.guildId || (Array.isArray(roles) ? roles.includes(id) : roles?.cache?.has(id)));
 }
 
@@ -332,11 +328,10 @@ client.on('interactionCreate', async interaction => {
             return;
         }
         sub = interaction.options.getSubcommand();
-        if (writeCommands.has(sub) && !mayWrite(interaction, sub)) {
-            const content = moderatorCommands.has(sub)
-                ? 'Ta komenda wymaga uprawnienia Administrator lub skonfigurowanej roli moderatora Hunt Listy.'
-                : 'Ta komenda wymaga uprawnienia Administrator lub skonfigurowanej roli z prawem zapisu do Hunt Listy.';
-            await respond(interaction, { content });
+        if (moderatorCommands.has(sub) && !mayModerate(interaction)) {
+            await respond(interaction, {
+                content: 'Ta komenda wymaga uprawnienia Administrator lub skonfigurowanej roli moderatora Hunt Listy.',
+            });
             return;
         }
 

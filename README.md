@@ -176,7 +176,9 @@ Folder: [`HuntListaBot/`](https://github.com/frethborn/HuntLista/tree/main/HuntL
    npm start
    ```
 
-**Przy aktualizacji bota:** `GUILD_ID` jest teraz wymagane. Bot rejestruje komendy na tym serwerze i sprawdza serwer oraz członkostwo przy każdym wywołaniu. `list`, `info` i `kills` są dostępne członkom tego serwera. Domyślnie tylko użytkownicy z uprawnieniem **Administrator** mogą zmieniać dane. W `.env` można podać ID ról rozdzielone przecinkami: `CONTRIBUTOR_ROLE_IDS` zezwala na `add` i `kill`, a `MODERATOR_ROLE_IDS` także na `remove` i `killreset`. Puste listy ról pozostawiają zapis tylko administratorom. Restart bota rejestruje opcję `strona`; jeśli stara instalacja używała komend globalnych, administrator może usunąć ich dawną rejestrację, aby uniknąć duplikatów. Kod odrzuca ich wywołania spoza skonfigurowanego serwera.
+**Uprawnienia bota:** `GUILD_ID` jest wymagane. Bot rejestruje komendy na tym serwerze i sprawdza serwer oraz członkostwo przy każdym wywołaniu. Każdy członek tego serwera może używać `list`, `info`, `kills`, `add` i `kill` bez ustawiania ról. `remove` i `killreset` wymagają uprawnienia **Administrator** lub roli wskazanej w `MODERATOR_ROLE_IDS` w `.env` (ID ról rozdzielone przecinkami). Pusta lista ról moderatorów pozostawia usuwanie wpisów i reset liczników tylko administratorom.
+
+**Przy aktualizacji bota:** `CONTRIBUTOR_ROLE_IDS` nie jest już używane i można je usunąć z `.env`. Po aktualizacji kodu zrestartuj bota. Restart rejestruje także opcję `strona`; jeśli stara instalacja używała komend globalnych, administrator może usunąć ich dawną rejestrację, aby uniknąć duplikatów. Kod odrzuca ich wywołania spoza skonfigurowanego serwera.
 
 Bot odczytuje `Data.lua` z GitHuba przed każdą dozwoloną komendą. Plik w repozytorium jest źródłem danych; brak lub uszkodzenie starego `local_data.json` nie zeruje listy. Ten lokalny plik nie jest już używany. Przed aktualizacją bota zachowaj jego kopię, jeśli zawiera zmiany, których poprzednia wersja nie wysłała na GitHuba, i dodaj brakujące wpisy ponownie przez Discord.
 

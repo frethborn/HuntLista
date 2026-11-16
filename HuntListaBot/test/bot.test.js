@@ -208,32 +208,43 @@ test('all Hunt Lista commands deny other guilds, DMs, and interactions without m
     assert.equal(bot.writes, 0);
 });
 
-test('guild members can read while non-administrators cannot write by default', async () => {
-    const bot = await startBot();
-    const member = {
-        member: { roles: { cache: new discord.Collection([['111', { id: '111' }]]) } },
-        memberPermissions: new discord.PermissionsBitField(discord.PermissionFlagsBits.ManageGuild),
-    };
-    for (const sub of ['add', 'kill', 'remove', 'killreset']) {
-        const reply = await bot.command(sub, 'Audit Player', '', 1, member);
-        assert.equal(reply.flags, discord.MessageFlags.Ephemeral);
-        assert.match(reply.content, /Administrator/);
-    }
-    assert.equal(bot.reads, 0);
-    assert.equal(bot.writes, 0);
+test('guild members can read, add and kill without roles but cannot remove or reset by default', async () => {
+    const members = [
+        {
+            member: { roles: { cache: new discord.Collection() } },
+            memberPermissions: new discord.PermissionsBitField(),
+        },
+        { member: { roles: [] }, memberPermissions: null },
+    ];
+    for (const member of members) {
+        const bot = await startBot();
+        const added = await bot.command('add', 'Audit Player', 'reason', 1, member);
+        assert.equal(added.embeds[0].data.title, 'Dodano na Hunt Listę');
+        const kill = await bot.command('kill', 'Audit Player', '', 2, member);
+        assert.equal(kill.embeds[0].data.title, 'Zabójstwo zapisane');
+        assert.equal(parseDataLua(bot.remote).players['Audit Player'].kills, '2');
+        const info = await bot.command('info', 'Audit Player', '', 1, member);
+        assert.match(info.embeds[0].data.title, /Audit Player/);
+        const list = await bot.command('list', null, '', 1, member);
+        assert.match(list.embeds[0].data.description, /Audit Player/);
+        const kills = await bot.command('kills', null, '', 1, member);
+        assert.match(kills.embeds[0].data.description, /Audit Player/);
 
-    await bot.command('add', 'Audit Player', 'reason');
-    await bot.command('kill', 'Audit Player');
-    const info = await bot.command('info', 'Audit Player', '', 1, member);
-    assert.match(info.embeds[0].data.title, /Audit Player/);
-    const list = await bot.command('list', null, '', 1, member);
-    assert.match(list.embeds[0].data.description, /Audit Player/);
-    const kills = await bot.command('kills', null, '', 1, member);
-    assert.match(kills.embeds[0].data.description, /Audit Player/);
-    assert.equal(bot.writes, 2);
+        const reads = bot.reads;
+        const before = bot.remote;
+        for (const sub of ['remove', 'killreset']) {
+            const reply = await bot.command(sub, 'Audit Player', '', 1, member);
+            assert.equal(reply.flags, discord.MessageFlags.Ephemeral);
+            assert.match(reply.content, /Administrator/);
+            assert.equal(bot.lastInteraction.deferred, false);
+        }
+        assert.equal(bot.reads, reads);
+        assert.equal(bot.writes, 2);
+        assert.equal(bot.remote, before);
+    }
 });
 
-test('configured contributor and moderator IDs work with cached and raw members', async () => {
+test('only administrators and configured moderators can remove or reset, regardless of legacy contributor roles', async () => {
     const bot = await startBot({ CONTRIBUTOR_ROLE_IDS: ' 111, 112, ', MODERATOR_ROLE_IDS: '221, 222' });
     const noPermissions = new discord.PermissionsBitField();
     const contexts = [
@@ -241,21 +252,28 @@ test('configured contributor and moderator IDs work with cached and raw members'
             member: { roles: { cache: new discord.Collection([['112', { id: '112' }]]) } },
             memberPermissions: noPermissions,
         },
-        { member: { roles: ['111'] }, memberPermissions: null },
+        {
+            member: { roles: ['333'] },
+            memberPermissions: new discord.PermissionsBitField(discord.PermissionFlagsBits.ManageGuild),
+        },
     ];
-    for (const contributor of contexts) {
-        const added = await bot.command('add', 'Audit Player', '', 1, contributor);
+    for (const member of contexts) {
+        const added = await bot.command('add', 'Audit Player', '', 1, member);
         assert.equal(added.embeds[0].data.title, 'Dodano na Hunt Listę');
-        const kill = await bot.command('kill', 'Audit Player', '', 2, contributor);
+        const kill = await bot.command('kill', 'Audit Player', '', 2, member);
         assert.equal(kill.embeds[0].data.title, 'Zabójstwo zapisane');
 
         const reads = bot.reads;
+        const writes = bot.writes;
+        const before = bot.remote;
         for (const sub of ['remove', 'killreset']) {
-            const denied = await bot.command(sub, 'Audit Player', '', 1, contributor);
+            const denied = await bot.command(sub, 'Audit Player', '', 1, member);
             assert.equal(denied.flags, discord.MessageFlags.Ephemeral);
             assert.match(denied.content, /roli moderatora/);
         }
         assert.equal(bot.reads, reads);
+        assert.equal(bot.writes, writes);
+        assert.equal(bot.remote, before);
     }
 
     const moderators = [
@@ -263,6 +281,10 @@ test('configured contributor and moderator IDs work with cached and raw members'
         {
             member: { roles: { cache: new discord.Collection([['221', { id: '221' }]]) } },
             memberPermissions: noPermissions,
+        },
+        {
+            member: { roles: [] },
+            memberPermissions: new discord.PermissionsBitField(discord.PermissionFlagsBits.Administrator),
         },
     ];
     for (const moderator of moderators) {
@@ -274,7 +296,7 @@ test('configured contributor and moderator IDs work with cached and raw members'
         const remove = await bot.command('remove', 'Audit Player', '', 1, moderator);
         assert.match(remove.content, /Usunięto/);
     }
-    assert.equal(bot.writes, 12);
+    assert.equal(bot.writes, 16);
 });
 
 test('list preserves full rows across exact embed limits and splits oversized Unicode text safely', async () => {
