@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-16.3",
-    lastUpdate = "2026-11-16 16:10",
+    version = "2026-11-17.1",
+    lastUpdate = "2026-11-17 13:57",
     updatedBy = "DiscordBot",
 
     players = {
@@ -166,6 +166,15 @@ HuntLista_Data = {
             reason = "",
             addedBy = "grobel",
             addedAt = "2026-11-12",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Kurej Agane"] = {
+            reason = "",
+            addedBy = "frethborn",
+            addedAt = "2026-11-17",
             note = "",
             kills = "0",
             lastKillBy = "",
