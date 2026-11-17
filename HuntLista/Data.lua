@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-17.2",
-    lastUpdate = "2026-11-17 17:55",
+    version = "2026-11-17.3",
+    lastUpdate = "2026-11-17 20:21",
     updatedBy = "DiscordBot",
 
     players = {
@@ -283,6 +283,15 @@ HuntLista_Data = {
             reason = "pionek",
             addedBy = "frethborn",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Red Flames"] = {
+            reason = "oby go rozjebali irl pozdro",
+            addedBy = "frethborn",
+            addedAt = "2026-11-17",
             note = "",
             kills = "0",
             lastKillBy = "",
