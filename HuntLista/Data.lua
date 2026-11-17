@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-17.1",
-    lastUpdate = "2026-11-17 13:57",
+    version = "2026-11-17.2",
+    lastUpdate = "2026-11-17 17:55",
     updatedBy = "DiscordBot",
 
     players = {
@@ -139,6 +139,15 @@ HuntLista_Data = {
             reason = "nie potrafi poczekac 30s",
             addedBy = "kkkelv",
             addedAt = "2026-11-14",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["hank stab"] = {
+            reason = "chuj mu w dupe nygusowi",
+            addedBy = "kkkelv",
+            addedAt = "2026-11-17",
             note = "",
             kills = "0",
             lastKillBy = "",
