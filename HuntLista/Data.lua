@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-18.1",
-    lastUpdate = "2026-11-18 14:23",
+    version = "2026-11-18.2",
+    lastUpdate = "2026-11-18 23:17",
     updatedBy = "DiscordBot",
 
     players = {
@@ -157,6 +157,15 @@ HuntLista_Data = {
             reason = "nie grajcie z nim dungow",
             addedBy = "grobel",
             addedAt = "2026-11-16",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Kajzi Plutt"] = {
+            reason = "level 60 napierdala tylko jak pullniesz mobka xdd",
+            addedBy = "emwues",
+            addedAt = "2026-11-18",
             note = "",
             kills = "0",
             lastKillBy = "",
