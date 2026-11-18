@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-17.3",
-    lastUpdate = "2026-11-17 20:21",
+    version = "2026-11-18.1",
+    lastUpdate = "2026-11-18 14:23",
     updatedBy = "DiscordBot",
 
     players = {
@@ -283,6 +283,15 @@ HuntLista_Data = {
             reason = "pionek",
             addedBy = "frethborn",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Peaky Blinders"] = {
+            reason = "cwel bije tylko jak mobki spullujesz",
+            addedBy = "emwues",
+            addedAt = "2026-11-18",
             note = "",
             kills = "0",
             lastKillBy = "",
