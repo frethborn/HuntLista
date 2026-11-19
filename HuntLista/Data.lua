@@ -4,7 +4,7 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-19.1",
+    version = "2026-11-19.2",
     lastUpdate = "2026-11-19 18:55",
     updatedBy = "DiscordBot",
 
@@ -202,6 +202,15 @@ HuntLista_Data = {
             reason = "tak jak powyżej",
             addedBy = "haczkes",
             addedAt = "2026-11-14",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Litos Prime"] = {
+            reason = "2v1 klasyczek aljancki",
+            addedBy = "emwues",
+            addedAt = "2026-11-19",
             note = "",
             kills = "0",
             lastKillBy = "",
