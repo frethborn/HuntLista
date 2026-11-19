@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-18.2",
-    lastUpdate = "2026-11-18 23:17",
+    version = "2026-11-19.1",
+    lastUpdate = "2026-11-19 18:55",
     updatedBy = "DiscordBot",
 
     players = {
@@ -391,6 +391,15 @@ HuntLista_Data = {
             reason = "",
             addedBy = "emwues",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Warrkan Rogkan"] = {
+            reason = "2v1 klasyczek aljancki",
+            addedBy = "emwues",
+            addedAt = "2026-11-19",
             note = "",
             kills = "0",
             lastKillBy = "",
