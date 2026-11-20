@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-20.2",
-    lastUpdate = "2026-11-20 01:51",
+    version = "2026-11-20.3",
+    lastUpdate = "2026-11-20 22:50",
     updatedBy = "DiscordBot",
 
     players = {
@@ -292,6 +292,15 @@ HuntLista_Data = {
             reason = "",
             addedBy = "grobel",
             addedAt = "2026-11-09",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Niykee Heaton"] = {
+            reason = "60 lvl pedal",
+            addedBy = "frethborn",
+            addedAt = "2026-11-20",
             note = "",
             kills = "0",
             lastKillBy = "",
