@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-20.1",
-    lastUpdate = "2026-11-20 01:50",
+    version = "2026-11-20.2",
+    lastUpdate = "2026-11-20 01:51",
     updatedBy = "DiscordBot",
 
     players = {
@@ -103,6 +103,15 @@ HuntLista_Data = {
             reason = "cwel engaguje 3v1 bo boi się wyjść na solówkę, a i tak umiera xdd",
             addedBy = "kkkelv",
             addedAt = "2026-11-10",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Eiviana Hunts"] = {
+            reason = "",
+            addedBy = "eijifresh",
+            addedAt = "2026-11-20",
             note = "",
             kills = "0",
             lastKillBy = "",
