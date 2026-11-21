@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-20.3",
-    lastUpdate = "2026-11-20 22:50",
+    version = "2026-11-21.1",
+    lastUpdate = "2026-11-21 17:59",
     updatedBy = "DiscordBot",
 
     players = {
@@ -157,6 +157,15 @@ HuntLista_Data = {
             reason = "chuj mu w dupe nygusowi",
             addedBy = "kkkelv",
             addedAt = "2026-11-17",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Holy Gatorade"] = {
+            reason = "cwel pierdolony",
+            addedBy = "kkkelv",
+            addedAt = "2026-11-21",
             note = "",
             kills = "0",
             lastKillBy = "",
