@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-21.2",
-    lastUpdate = "2026-11-21 19:12",
+    version = "2026-11-23.1",
+    lastUpdate = "2026-11-23 03:58",
     updatedBy = "DiscordBot",
 
     players = {
@@ -175,6 +175,15 @@ HuntLista_Data = {
             reason = "nie grajcie z nim dungow",
             addedBy = "grobel",
             addedAt = "2026-11-16",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Jose Taiga"] = {
+            reason = "",
+            addedBy = "eijifresh",
+            addedAt = "2026-11-23",
             note = "",
             kills = "0",
             lastKillBy = "",
