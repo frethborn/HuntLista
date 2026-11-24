@@ -4,8 +4,8 @@
 -- ============================================================
 
 HuntLista_Data = {
-    version = "2026-11-23.1",
-    lastUpdate = "2026-11-23 03:58",
+    version = "2026-11-24.1",
+    lastUpdate = "2026-11-24 11:36",
     updatedBy = "DiscordBot",
 
     players = {
@@ -76,6 +76,15 @@ HuntLista_Data = {
             reason = "na afku zabil pedal",
             addedBy = "frethborn",
             addedAt = "2026-11-11",
+            note = "",
+            kills = "0",
+            lastKillBy = "",
+            lastKillAt = "",
+        },
+        ["Dbsy Tv"] = {
+            reason = "",
+            addedBy = "grobel",
+            addedAt = "2026-11-24",
             note = "",
             kills = "0",
             lastKillBy = "",
